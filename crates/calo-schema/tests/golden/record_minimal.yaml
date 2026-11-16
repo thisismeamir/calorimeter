@@ -1,0 +1,18 @@
+schema: calo.record/2
+identity:
+  run_id: baseline.r0
+  benchmark: baseline
+  mode: measure
+  status: ok
+environment:
+  machine: local-workstation
+  observed:
+    kernel: 6.6.0
+provenance:
+  probe_version: 0.1.0
+  start: "2026-11-15T20:00:00Z"
+  end: "2026-11-15T20:00:05Z"
+  exit:
+    code: 0
+  tiers_active:
+    cpu: T0

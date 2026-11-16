@@ -1,0 +1,321 @@
+schema: calo.record/2
+identity:
+  run_id: cosmo_strong.N_256.nodes_2.r0
+  benchmark: cosmo_strong
+  group: scaling
+  mode: profile
+  params:
+    N: 256
+    nodes: 2
+    patch: vec+regions
+  repeat: 0
+  warmup: false
+  rank: 0
+  ranks: 8
+  node: nid001024
+  local_rank: 0
+  suite_hash: a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
+  linked_runs:
+    - cosmo_strong_measure.N_256.nodes_2.r0
+  status: ok
+environment:
+  machine: hpc-a
+  node_class: gpu-a100
+  fingerprint: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  declared:
+    cores: 64
+  observed:
+    cpu:
+      model: AMD EPYC 7763 64-Core Processor
+      microarch: zen3
+      sockets: 1
+      cores: 64
+      threads: 128
+      smt: true
+      isa:
+        - avx2
+      cache:
+        l1d_kb: 32
+        l2_kb: 512
+        l3_mb: 256
+    memory:
+      total_bytes: 549755813888
+      numa_nodes: 4
+      numa_distance:
+        - [10, 12, 12, 12]
+        - [12, 10, 12, 12]
+        - [12, 12, 10, 12]
+        - [12, 12, 12, 10]
+      thp: madvise
+      hugepages: 0
+    kernel: 5.15.0-hpc
+    policy:
+      governor: performance
+      turbo: "off"
+      smt: "on"
+      perf_event_paranoid: 1
+      isolation: 0-3
+      cgroup_cpus: 4-127
+      cgroup_mem_bytes: 536870912000
+    counters_available:
+      - cycles
+      - instructions
+      - cache-misses
+    gpus:
+      - index: 0
+        vendor: nvidia
+        model: NVIDIA A100-SXM4-80GB
+        arch: sm_80
+        sms: 108
+        mem_bytes: 85899345920
+        driver: 550.54.15
+        runtime: "12.4"
+        ecc: true
+        clocks:
+          sm_mhz: 1410
+          mem_mhz: 1593
+        link:
+          - nvlink
+        numa: 0
+    nic:
+      - name: hsn0
+        type: slingshot
+        rate_gbps: 200.0
+        numa: 0
+    mpi:
+      library: cray-mpich
+      version: 8.1.28
+      launcher: srun
+      thread_level_provided: MPI_THREAD_MULTIPLE
+  placement:
+    cpu_list: 4-19
+    numa:
+      - 0
+    threads: 16
+    gpus:
+      - 0
+    nic: hsn0
+  devices:
+    - index: 0
+      owners:
+        - 0
+  revisions:
+    cosmolattice: 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e
+  patchset:
+    name: vec+regions
+    patches:
+      - file: avx512-kernels.patch
+        sha256: 1111111111111111111111111111111111111111111111111111111111111111
+      - file: calo-regions.patch
+        sha256: 2222222222222222222222222222222222222222222222222222222222222222
+    tree_hash: 3333333333333333333333333333333333333333333333333333333333333333
+  build:
+    name: profile
+    cache_key: 4444444444444444444444444444444444444444444444444444444444444444
+    flags: "-O3 -g -fno-omit-frame-pointer"
+    backend: cuda
+    gpu_arch:
+      - sm_80
+    toolchain: gcc-12.3.0+cuda-12.4
+  artifact_hashes:
+    build/cosmolattice: 5555555555555555555555555555555555555555555555555555555555555555
+  rendered_files:
+    input:
+      path: inputs/model.in
+      sha256: 6666666666666666666666666666666666666666666666666666666666666666
+  mpi_lib:
+    name: cray-mpich
+    version: 8.1.28
+  modules:
+    - PrgEnv-gnu
+    - cudatoolkit/12.4
+observations:
+  scalars:
+    wall_s: 12.345
+    user_cpu_s: 180.5
+    sys_cpu_s: 4.25
+    peak_rss_bytes: 4294967296
+    minor_faults: 12400
+    major_faults: 0
+    voluntary_ctx: 850
+    involuntary_ctx: 42
+    block_in_bytes: 0
+    block_out_bytes: 16384
+    energy_j:
+      pkg: 2450.5
+      gpu: 0.0
+    counters:
+      cycles:
+        value: 42000000000
+        time_enabled_ns: 12345000000
+        time_running_ns: 12345000000
+        scaled: false
+      instructions:
+        value: 63000000000
+        time_enabled_ns: 12345000000
+        time_running_ns: 12345000000
+        scaled: false
+  phases:
+    init:
+      start_ns: 100000000
+      end_ns: 1100000000
+    main:
+      start_ns: 1100000000
+      end_ns: 12345000000
+  regions:
+    threads:
+      - tid: 104521
+        tree:
+          - name: step_evolve
+            calls: 100
+            incl_s: 11.0
+            excl_s: 1.5
+            children:
+              - name: field_update
+                calls: 100
+                incl_s: 4.5
+                excl_s: 4.5
+              - name: fft
+                calls: 200
+                incl_s: 5.0
+                excl_s: 5.0
+  reported:
+    steps:
+      value: 100.0
+      unit: steps
+  tags:
+    integrator: verlet
+  series:
+    host:
+      path: ../../series/cosmo_strong.N_256.nodes_2.r0/rank0.host.calotbl
+      format: calo.table/1
+      schema: series.host
+      rows: 123
+      sha256: 7777777777777777777777777777777777777777777777777777777777777777
+  profile:
+    method: fp
+    freq_hz: 499
+    samples: 6150
+    lost: 2
+    modules:
+      - path: /scratch/work/build/cosmolattice
+        build_id: aabbccddeeff00112233445566778899aabbccdd
+        base: 4194304
+        size: 2097152
+    data:
+      path: ../../profiles/cosmo_strong.N_256.nodes_2.r0/rank0.samples.calotbl
+      format: calo.table/1
+      schema: profile.samples
+      rows: 6150
+      sha256: 8888888888888888888888888888888888888888888888888888888888888888
+  mpi:
+    thread_level: MPI_THREAD_MULTIPLE
+    shim_overhead_ns_per_call: 48.5
+    functions:
+      - name: MPI_Allreduce
+        comm: MPI_COMM_WORLD
+        calls: 200
+        total_s: 0.45
+        min_s: 0.0018
+        max_s: 0.0042
+        bytes_sent: 1600
+        bytes_recv: 1600
+        size_hist:
+          - 0
+          - 0
+          - 0
+          - 200
+    peers:
+      path: ../../mpi/cosmo_strong.N_256.nodes_2.r0/rank0.peers.calotbl
+      format: calo.table/1
+      schema: mpi.peers
+      rows: 16
+      sha256: 9999999999999999999999999999999999999999999999999999999999999999
+    collectives:
+      path: ../../mpi/cosmo_strong.N_256.nodes_2.r0/rank0.collectives.calotbl
+      format: calo.table/1
+      schema: mpi.collectives
+      rows: 200
+      sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    trace:
+      path: ../../mpi/cosmo_strong.N_256.nodes_2.r0/rank0.trace.calotbl
+      format: calo.table/1
+      schema: mpi.trace
+      rows: 1200
+      sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    clock_sync:
+      offset_ns: -1420
+      drift_ppm: 0.035
+      rtt_bound_ns: 1850
+      method: ping_pong_min_rtt
+  gpu:
+    devices:
+      - index: 0
+        owners:
+          - 0
+        state_series:
+          path: ../../series/cosmo_strong.N_256.nodes_2.r0/rank0.gpu0.calotbl
+          format: calo.table/1
+          schema: series.gpu_state
+          rows: 123
+          sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+        kernels:
+          path: ../../gpu/cosmo_strong.N_256.nodes_2.r0/rank0.gpu0.kernels.calotbl
+          format: calo.table/1
+          schema: gpu.kernels
+          rows: 45
+          sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+        memcpy:
+          path: ../../gpu/cosmo_strong.N_256.nodes_2.r0/rank0.gpu0.memcpy.calotbl
+          format: calo.table/1
+          schema: gpu.memcpy
+          rows: 12
+          sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+        timeline:
+          path: ../../gpu/cosmo_strong.N_256.nodes_2.r0/rank0.gpu0.timeline.calotbl
+          format: calo.table/1
+          schema: gpu.timeline
+          rows: 900
+          sha256: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+        counters:
+          path: ../../gpu/cosmo_strong.N_256.nodes_2.r0/rank0.gpu0.counters.calotbl
+          format: calo.table/1
+          schema: gpu.counters
+          rows: 10
+          sha256: 1212121212121212121212121212121212121212121212121212121212121212
+        clock_correlation:
+          path: ../../gpu/cosmo_strong.N_256.nodes_2.r0/rank0.gpu0.clock.calotbl
+          format: calo.table/1
+          schema: gpu.clock_correlation
+          rows: 15
+          sha256: 3434343434343434343434343434343434343434343434343434343434343434
+    source: in_process
+    tracing_overhead_s: 0.082
+provenance:
+  probe_version: 0.1.0
+  shim_versions:
+    mpi: 0.1.0
+    gpu: 0.1.0
+  counters:
+    - cycles
+    - instructions
+  clock: CLOCK_MONOTONIC_RAW
+  callgraph: fp
+  start: "2026-11-15T20:10:00+00:00"
+  end: "2026-11-15T20:10:12+00:00"
+  start_ns: 849201928374
+  exit:
+    code: 0
+  sample_loss: 0.000325
+  trace_overflow:
+    mpi: 0
+    gpu: 0
+    writer_queue: 0
+  tiers_active:
+    cpu: T2
+    mpi: M2
+    gpu: G2
+  warnings:
+    - code: mux_detected
+      message: "counter multiplexing occurred on group 1"
+  errors: []
