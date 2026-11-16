@@ -1,0 +1,20 @@
+schema: calo.inventory/1
+machines:
+  hpc-a:
+    connect:
+      type: slurm
+      host: login.hpc
+      partitions: [gpu]
+    node_classes:
+      gpu-a100:
+        count: 16
+        partition: gpu
+        node:
+          cpu:
+            cores: 64
+          gpu:
+            vendor: nvidia
+            model: A100
+            arch: sm_80
+            per_node: 4
+            mem_gb: 80

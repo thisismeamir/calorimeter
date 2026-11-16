@@ -1,0 +1,20 @@
+schema: calo.suite/1
+suite:
+  name: bad_names_suite
+patches:
+  sets:
+    none: []
+builds:
+  release:
+    run: "make"
+steps:
+  run_sim:
+    run: "./app"
+    measured: true
+benchmarks:
+  - name: b1
+    machine: unknown-cluster
+    build: missing_build
+    steps: [missing_step]
+    params:
+      patch: missing_patchset

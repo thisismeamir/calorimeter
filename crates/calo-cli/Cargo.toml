@@ -1,0 +1,15 @@
+[package]
+name = "calo-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "calo"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+calo-core = { path = "../calo-core" }
+calo-schema = { path = "../calo-schema" }
+clap = { workspace = true }
+serde = { workspace = true }

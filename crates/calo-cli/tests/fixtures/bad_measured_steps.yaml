@@ -1,0 +1,18 @@
+schema: calo.suite/1
+suite:
+  name: bad_measured_steps
+builds:
+  release:
+    run: "make"
+steps:
+  prep:
+    run: "./prep"
+    measured: false
+  cleanup:
+    run: "./clean"
+    measured: false
+benchmarks:
+  - name: zero_measured
+    machine: hpc-a/gpu-a100
+    build: release
+    steps: [prep, cleanup]

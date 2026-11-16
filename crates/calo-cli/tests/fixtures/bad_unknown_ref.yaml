@@ -1,0 +1,17 @@
+schema: calo.suite/1
+suite:
+  name: bad_ref_suite
+builds:
+  release:
+    run: "make"
+steps:
+  run_sim:
+    run: "./app"
+    measured: true
+benchmarks:
+  - name: b1
+    machine: hpc-a/gpu-a100
+    build: release
+    steps: [run_sim]
+    derive:
+      total: "params.nonexistent_axis * 4"

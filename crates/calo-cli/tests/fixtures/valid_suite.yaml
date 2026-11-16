@@ -1,0 +1,57 @@
+schema: calo.suite/1
+suite:
+  name: cosmo_valid
+  version: 0.1.0
+patches:
+  dir: patches/
+  sets:
+    none: []
+    regions: [calo-regions.patch]
+builds:
+  release:
+    run: "cmake --build build"
+    flags: "-O3"
+    backend: cuda
+  profile:
+    run: "cmake --build build"
+    flags: "-O3 -g -fno-omit-frame-pointer"
+    backend: cuda
+    debug_info: required
+steps:
+  run_sim:
+    run: "./build/cosmo --N ${{ params.N }}"
+    measured: true
+    resources:
+      nodes: "${{ params.nodes }}"
+      ranks_per_node: 4
+      gpus_per_rank: 1
+    timeout: "00:30:00"
+benchmarks:
+  - name: scaling
+    group: strong
+    mode: measure
+    machine: hpc-a/gpu-a100
+    build: release
+    steps: [run_sim]
+    params:
+      patch: none
+    axes:
+      N: [128, 256]
+      nodes: [1, 2]
+  - name: scaling_prof
+    group: strong
+    mode: profile
+    machine: hpc-a/gpu-a100
+    build: profile
+    steps: [run_sim]
+    from: scaling
+    where: "params.N == 256"
+services:
+  sites_per_second:
+    expr: "params.N**3 * reported.steps / phase.main"
+    unit: sites/s
+reports:
+  - name: profile_report
+    requires: [T1, M1, G1]
+    select:
+      benchmark: scaling_prof

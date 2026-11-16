@@ -1,0 +1,3 @@
+schema: calo.suite/99
+suite:
+  name: bad_schema_suite

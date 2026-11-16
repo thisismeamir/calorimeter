@@ -1,0 +1,17 @@
+schema: calo.suite/1
+suite:
+  name: bad_profile_debug
+builds:
+  release_no_debug:
+    run: "make"
+    flags: "-O3"
+steps:
+  run_sim:
+    run: "./app"
+    measured: true
+benchmarks:
+  - name: prof_bench
+    mode: profile
+    machine: hpc-a/gpu-a100
+    build: release_no_debug
+    steps: [run_sim]

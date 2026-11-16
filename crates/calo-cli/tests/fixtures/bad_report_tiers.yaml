@@ -1,0 +1,21 @@
+schema: calo.suite/1
+suite:
+  name: bad_report_tiers
+builds:
+  release:
+    run: "make"
+steps:
+  run_sim:
+    run: "./app"
+    measured: true
+benchmarks:
+  - name: measure_only
+    mode: measure
+    machine: hpc-a/gpu-a100
+    build: release
+    steps: [run_sim]
+reports:
+  - name: flame_report
+    requires: [T1, M1]
+    select:
+      benchmark: measure_only
