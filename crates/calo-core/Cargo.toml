@@ -1,0 +1,9 @@
+[package]
+name = "calo-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+calo-schema = { path = "../calo-schema" }
+serde = { workspace = true }
+thiserror = { workspace = true }
