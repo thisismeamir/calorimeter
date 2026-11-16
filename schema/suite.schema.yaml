@@ -1,0 +1,203 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "calo.suite/1"
+title: Calorimeter Suite Schema
+type: object
+required: [schema, suite]
+properties:
+  schema:
+    const: calo.suite/1
+  include:
+    type: array
+    items: { type: string }
+  suite:
+    type: object
+    required: [name]
+    properties:
+      name: { type: string }
+      version: { type: string }
+      description: { type: string }
+  context:
+    type: array
+    items: { type: string }
+  sources:
+    type: object
+    additionalProperties:
+      type: object
+      required: [git, rev]
+      properties:
+        git: { type: string }
+        rev: { type: string }
+        submodules: { type: boolean }
+  patches:
+    type: object
+    properties:
+      dir: { type: string }
+      sets:
+        type: object
+        additionalProperties:
+          type: array
+          items: { type: string }
+      apply:
+        type: object
+        properties:
+          method: { type: string }
+          strip: { type: integer }
+          on_conflict: { enum: [fail, skip] }
+  builds:
+    type: object
+    additionalProperties:
+      type: object
+      required: [run]
+      properties:
+        run: { type: string }
+        flags: { type: string }
+        backend: { enum: [cuda, hip, sycl, none] }
+        modules: { type: array, items: { type: string } }
+        debug_info: { enum: [required, optional] }
+        device_lineinfo: { type: boolean }
+        rebuild: { enum: [cache, fresh] }
+        measured: { type: boolean }
+  steps:
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        run: { type: string }
+        measured: { type: boolean }
+        kind: { type: string }
+        uses: { type: string }
+        resources:
+          type: object
+          properties:
+            nodes: { type: [integer, string] }
+            ranks_per_node: { type: [integer, string] }
+            threads_per_rank: { type: [integer, string] }
+            gpus_per_rank: { type: [integer, string] }
+        files:
+          type: object
+          additionalProperties:
+            type: object
+            required: [template]
+            properties:
+              template: { type: string }
+              vars: { type: object }
+        channel:
+          type: object
+          properties:
+            phases: { type: array, items: { type: string } }
+            regions: { type: array, items: { type: string } }
+            exclude_from_rates: { type: array, items: { type: string } }
+        timeout: { type: string }
+  benchmarks:
+    type: array
+    items:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        group: { type: string }
+        mode: { enum: [measure, profile, kernel] }
+        machine: { type: [string, object] }
+        build: { type: string }
+        steps: { type: array, items: { type: string } }
+        measure: { type: array, items: { type: string } }
+        params: { type: object }
+        axes:
+          type: object
+          additionalProperties: { type: array }
+        derive:
+          type: object
+          additionalProperties: { type: string }
+        defaults: { type: object }
+        expand: { enum: [all, defaults, none] }
+        include: { type: array, items: { type: object } }
+        exclude: { type: array, items: { type: object } }
+        scaling:
+          type: object
+          required: [kind, over, baseline]
+          properties:
+            kind: { enum: [strong, weak] }
+            over: { enum: [nodes, ranks, gpus] }
+            baseline: { type: object }
+        repeat: { type: integer, minimum: 1 }
+        warmup: { type: integer, minimum: 0 }
+        probe: { type: object }
+        from: { type: string }
+        where: { type: string }
+        concurrency: { type: integer, minimum: 1 }
+        batch: { enum: [run, group] }
+  services:
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        estimator: { type: string }
+        ci: { type: object }
+        outliers: { type: object }
+        expr: { type: string }
+        unit: { type: string }
+        python: { type: string }
+        inputs: { type: array, items: { type: string } }
+        produces: { type: array, items: { type: string } }
+        requires:
+          type: array
+          items: { enum: [T0, T1, T2, M0, M1, M2, G0, G1, G2] }
+  symbols:
+    type: object
+    properties:
+      fold:
+        type: array
+        items:
+          type: object
+          required: [match, as]
+          properties:
+            match: { type: string }
+            as: { type: string }
+      classes:
+        type: array
+        items:
+          type: object
+          required: [match, class]
+          properties:
+            match: { type: string }
+            class: { type: string }
+  reports:
+    type: array
+    items:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        requires:
+          type: array
+          items: { enum: [T0, T1, T2, M0, M1, M2, G0, G1, G2] }
+        select: { type: [string, object, array] }
+        plots: { type: array, items: { type: object } }
+        tables:
+          type: array
+          items:
+            type: object
+            required: [rows, cols, value]
+            properties:
+              rows: { type: string }
+              cols: { type: string }
+              value: { type: string }
+        gates:
+          type: array
+          items:
+            type: object
+            required: [metric, fail_if]
+            properties:
+              metric: { type: string }
+              compare: { type: object }
+              fail_if: { type: string }
+        output:
+          type: array
+          items: { enum: [md, html, pdf, csv, svg] }
+  options:
+    type: object
+    properties:
+      strict_hardware: { type: boolean }
+      order: { enum: [interleaved, random, sequential] }
+      on_failure: { enum: [record, stop] }
+      redact: { type: array, items: { type: string } }

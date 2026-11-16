@@ -1,0 +1,162 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "calo.inventory/1"
+title: Calorimeter Inventory Schema
+type: object
+required: [schema, machines]
+properties:
+  schema:
+    const: calo.inventory/1
+  machines:
+    type: object
+    additionalProperties:
+      type: object
+      required: [connect]
+      properties:
+        connect:
+          type: object
+          required: [type]
+          properties:
+            type: { enum: [local, ssh, slurm] }
+            host: { type: string }
+            user: { type: string }
+            partitions: { type: array, items: { type: string } }
+            account: { type: string }
+        fingerprint: { type: string }
+        tags: { type: array, items: { type: string } }
+        node_classes:
+          type: object
+          additionalProperties:
+            type: object
+            required: [node]
+            properties:
+              count: { type: integer, minimum: 1 }
+              partition: { type: string }
+              features: { type: array, items: { type: string } }
+              node: { $ref: "#/$defs/node" }
+        node: { $ref: "#/$defs/node" }
+        network:
+          type: object
+          required: [type]
+          properties:
+            type: { enum: [infiniband, slingshot, ethernet] }
+            bw_gbps: { type: number }
+            topology: { type: string }
+        reference:
+          type: object
+          properties:
+            cpu:
+              type: object
+              properties:
+                mem_bw_gbs: { type: number }
+                peak_gflops: { type: number }
+            gpu:
+              type: object
+              properties:
+                mem_bw_gbs: { type: number }
+                peak_gflops_fp64: { type: number }
+                peak_gflops_fp32: { type: number }
+            mpi:
+              type: object
+              properties:
+                p2p_latency_us: { type: number }
+                p2p_bw_gbs: { type: number }
+                allreduce_latency_us: { type: number }
+            host_device_bw_gbs: { type: number }
+            measured:
+              type: object
+              required: [probe, fingerprint, at]
+              properties:
+                probe: { type: string }
+                fingerprint: { type: string }
+                at: { type: string }
+                stale: { type: boolean }
+        workdir: { type: string }
+        modules: { type: array, items: { type: string } }
+        env:
+          type: object
+          additionalProperties: { type: string }
+        launcher:
+          type: object
+          properties:
+            mpi: { type: string }
+            bind:
+              type: object
+              properties:
+                cpu: { enum: [core, numa, none] }
+                gpu: { enum: [local_rank, explicit, none] }
+            gpu_aware_mpi: { type: boolean }
+        probe:
+          type: object
+          properties:
+            counters:
+              type: object
+              additionalProperties: { type: string }
+            power: { enum: [rapl, nvml, rocm-smi, none] }
+            max_sample_hz: { type: integer, minimum: 1 }
+        policy:
+          type: object
+          properties:
+            isolate:
+              type: object
+              required: [cpu_list]
+              properties:
+                cpu_list: { type: string }
+            governor: { type: string }
+            turbo: { type: string }
+            gpu_clocks: { enum: [locked, default] }
+        discovered:
+          type: object
+          required: [at, calo]
+          properties:
+            at: { type: string }
+            calo: { type: string }
+            fields:
+              type: object
+              additionalProperties:
+                type: object
+                required: [source, confidence]
+                properties:
+                  source: { type: string }
+                  confidence: { enum: [measured, queried, inferred, unavailable] }
+            unresolved:
+              type: array
+              items:
+                type: object
+                required: [field, fix]
+                properties:
+                  field: { type: string }
+                  fix: { type: string }
+$defs:
+  node:
+    type: object
+    properties:
+      cpu:
+        type: object
+        properties:
+          model: { type: string }
+          microarch: { type: string }
+          sockets: { type: integer }
+          cores: { type: integer }
+          threads: { type: integer }
+          smt: { type: boolean }
+          isa: { type: array, items: { type: string } }
+      cache:
+        type: object
+        properties:
+          l2_kb: { type: integer }
+          l3_mb: { type: integer }
+      memory:
+        type: object
+        properties:
+          gb: { type: number }
+          channels: { type: integer }
+          numa_nodes: { type: integer }
+      gpu:
+        type: object
+        properties:
+          vendor: { type: string }
+          model: { type: string }
+          arch: { type: string }
+          per_node: { type: integer }
+          mem_gb: { type: number }
+          link: { enum: [nvlink, pcie, xgmi, none] }

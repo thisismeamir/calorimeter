@@ -1,0 +1,36 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "calo.manifest/1"
+title: Calorimeter Manifest Schema
+type: object
+required: [schema, suite, created, calo, resolved, inventory_snapshot]
+properties:
+  schema:
+    const: calo.manifest/1
+  suite:
+    type: object
+    required: [name, hash]
+    properties:
+      name: { type: string }
+      version: { type: string }
+      hash: { type: string }
+  created: { type: string }
+  calo: { type: string }
+  resolved: { type: object }
+  inventory_snapshot: { type: object }
+  runs:
+    type: array
+    items:
+      type: object
+      required: [run_id, benchmark, mode, machine, status]
+      properties:
+        run_id: { type: string }
+        benchmark: { type: string }
+        mode: { enum: [measure, profile, kernel] }
+        machine: { type: string }
+        params: { type: object }
+        status: { enum: [ok, failed, timeout, invalid] }
+        linked_runs: { type: array, items: { type: string } }
+        record: { type: string }
+  sources:
+    type: object
+    additionalProperties: { type: string }

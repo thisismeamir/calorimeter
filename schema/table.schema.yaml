@@ -1,0 +1,38 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "calo.table/1"
+title: Calorimeter Sidecar Table Header Schema
+type: object
+required: [schema, table, columns]
+properties:
+  schema:
+    const: calo.table/1
+  table:
+    enum:
+      - series.host
+      - series.gpu_state
+      - profile.samples
+      - profile.maps
+      - mpi.peers
+      - mpi.collectives
+      - mpi.trace
+      - gpu.kernels
+      - gpu.memcpy
+      - gpu.timeline
+      - gpu.counters
+      - gpu.clock_correlation
+  columns:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string }
+        type: { enum: [int32, int64, float32, float64, uint8, string_id] }
+  strings:
+    type: object
+    additionalProperties:
+      type: array
+      items: { type: string }
+  meta:
+    type: object

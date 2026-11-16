@@ -1,0 +1,44 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "calo.discovery/1"
+title: Calorimeter Discovery Schema
+type: object
+required: [schema, probe_version, at, fingerprint, observed]
+properties:
+  schema:
+    const: calo.discovery/1
+  probe_version: { type: string }
+  at: { type: string }
+  fingerprint: { type: string }
+  tiers_supported:
+    type: object
+    properties:
+      cpu: { enum: [T0, T1, T2] }
+      mpi: { enum: [M0, M1, M2] }
+      gpu: { enum: [G0, G1, G2] }
+  observed: { type: object }
+  toolchain: { type: object }
+  storage:
+    type: array
+    items:
+      type: object
+      required: [path, fstype, free_bytes]
+      properties:
+        path: { type: string }
+        fstype: { type: string }
+        free_bytes: { type: integer }
+  fields:
+    type: object
+    additionalProperties:
+      type: object
+      required: [source, confidence]
+      properties:
+        source: { type: string }
+        confidence: { enum: [measured, queried, inferred, unavailable] }
+  unresolved:
+    type: array
+    items:
+      type: object
+      required: [field, fix]
+      properties:
+        field: { type: string }
+        fix: { type: string }

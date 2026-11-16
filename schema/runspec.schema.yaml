@@ -1,0 +1,70 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "calo.runspec/1"
+title: Calorimeter RunSpec Schema
+type: object
+required: [schema, run_id, mode, command, cwd, outputs]
+properties:
+  schema:
+    const: calo.runspec/1
+  run_id: { type: string }
+  mode: { enum: [measure, profile, kernel] }
+  command:
+    type: array
+    minItems: 1
+    items: { type: string }
+  cwd: { type: string }
+  env:
+    type: object
+    additionalProperties: { type: string }
+  affinity:
+    type: object
+    properties:
+      cpu_list: { type: string }
+      numa: { enum: [bind, interleave, none] }
+  rlimits:
+    type: object
+    properties:
+      core: { type: integer }
+  counters:
+    type: array
+    items: { type: string }
+  sample_hz: { type: integer, minimum: 1 }
+  profile:
+    type: object
+    properties:
+      freq_hz: { type: integer }
+      callgraph: { enum: [fp, dwarf] }
+      stack_bytes: { type: integer }
+      attribute: { type: array, items: { type: string } }
+      max_loss: { type: number }
+  mpi:
+    type: object
+    required: [mode]
+    properties:
+      mode: { enum: [off, summary, events] }
+      trace_max_events: { type: integer }
+  gpu:
+    type: object
+    properties:
+      state: { type: boolean }
+      sample_hz: { type: integer }
+      trace: { enum: [off, activity] }
+      source: { enum: [in_process, external] }
+      counters: { type: array, items: { type: string } }
+      kernel_filter: { type: string }
+      kernel_limit: { type: integer }
+      launch_stacks: { type: string }
+      trace_max_events: { type: integer }
+  shim_inject: { enum: [preload, link, auto] }
+  regions: { enum: [events, aggregate] }
+  channel: { type: string }
+  rank:
+    type: object
+    required: [from_env]
+    properties:
+      from_env: { type: boolean }
+  outputs:
+    type: object
+    required: [dir]
+    properties:
+      dir: { type: string }

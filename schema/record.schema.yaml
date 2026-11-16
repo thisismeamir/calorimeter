@@ -1,0 +1,99 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "calo.record/2"
+title: Calorimeter Run Record Schema
+type: object
+required: [schema, identity, environment, provenance]
+properties:
+  schema:
+    const: calo.record/2
+  identity:
+    type: object
+    required: [run_id, benchmark, mode, status]
+    properties:
+      run_id: { type: string }
+      benchmark: { type: string }
+      group: { type: string }
+      mode: { enum: [measure, profile, kernel] }
+      params: { type: object }
+      repeat: { type: integer }
+      warmup: { type: boolean }
+      rank: { type: integer }
+      ranks: { type: integer }
+      node: { type: string }
+      local_rank: { type: integer }
+      suite_hash: { type: string }
+      linked_runs: { type: array, items: { type: string } }
+      status: { enum: [ok, failed, timeout, invalid] }
+  environment:
+    type: object
+    required: [machine, observed]
+    properties:
+      machine: { type: string }
+      node_class: { type: string }
+      fingerprint: { type: string }
+      declared: { type: object }
+      observed: { type: object }
+      placement: { type: object }
+      devices: { type: array, items: { type: object } }
+      revisions: { type: object, additionalProperties: { type: string } }
+      patchset: { type: object }
+      build: { type: object }
+      artifact_hashes: { type: object, additionalProperties: { type: string } }
+      rendered_files: { type: object }
+      mpi_lib: { type: object }
+      modules: { type: array, items: { type: string } }
+  observations:
+    type: object
+    properties:
+      scalars: { type: object }
+      phases: { type: object }
+      regions: { type: object }
+      reported: { type: object }
+      tags: { type: object, additionalProperties: { type: string } }
+      series: { type: object }
+      profile: { type: object }
+      mpi: { type: object }
+      gpu: { type: object }
+  provenance:
+    type: object
+    required: [probe_version, start, end, exit, tiers_active]
+    properties:
+      probe_version: { type: string }
+      shim_versions: { type: object }
+      counters: { type: array, items: { type: string } }
+      clock: { type: string }
+      callgraph: { enum: [fp, dwarf] }
+      start: { type: string }
+      end: { type: string }
+      start_ns: { type: integer }
+      exit:
+        type: object
+        properties:
+          code: { type: integer }
+          signal: { type: string }
+      sample_loss: { type: number }
+      trace_overflow: { type: object }
+      tiers_active:
+        type: object
+        properties:
+          cpu: { enum: [T0, T1, T2] }
+          mpi: { enum: [M0, M1, M2] }
+          gpu: { enum: [G0, G1, G2] }
+      warnings:
+        type: array
+        items:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+      errors:
+        type: array
+        items:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+  aggregate:
+    type: object
