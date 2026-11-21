@@ -1,0 +1,5 @@
+# PLACEHOLDER: replace keys with real CosmoLattice parameter file keys
+lattice_size = {{ N }}
+time_step = {{ dt }}
+num_steps = {{ steps }}
+output_cadence = {{ output_cadence }}

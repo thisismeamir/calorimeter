@@ -1,0 +1,213 @@
+schema: calo.suite/1
+suite:
+  name: cosmolattice-reference
+  version: "0.1.0"
+  description: "Reference Calorimeter suite for CosmoLattice (spec §19)"
+
+sources:
+  cosmolattice:
+    git: https://github.com/cosmolattice/cosmolattice.git # PLACEHOLDER: replace with your fork/checkout URL
+    rev: main # PLACEHOLDER: pin to release tag or commit SHA
+    submodules: true
+
+patches:
+  dir: patches/
+  sets:
+    none: []
+    regions: [calo-regions.patch] # PLACEHOLDER: authored by engineers
+  apply:
+    method: git-apply
+    strip: 1
+    on_conflict: fail
+
+builds:
+  release:
+    run: |
+      cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPI=ON -DOPENMP=ON -DBACKEND=${{ params.backend }}
+      cmake --build build -j
+    flags: "-O3 -DNDEBUG -fopenmp"
+    backend: none
+    artifacts: ["build/cosmolattice*"]
+  profile:
+    run: |
+      cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMPI=ON -DOPENMP=ON -DBACKEND=${{ params.backend }}
+      cmake --build build -j
+    flags: "-O3 -g -fno-omit-frame-pointer -fopenmp"
+    backend: none
+    debug_info: required
+    device_lineinfo: true
+    artifacts: ["build/cosmolattice*"]
+
+steps:
+  run:
+    run: ./build/cosmolattice input=${{ files.input }}
+    measured: true
+    kind: native
+    resources:
+      nodes: "${{ params.nodes }}"
+      ranks_per_node: "${{ params.rpn }}"
+      threads_per_rank: "${{ params.threads }}"
+      gpus_per_rank: "${{ params.gpus_per_rank }}"
+    files:
+      input:
+        template: templates/model.in
+        vars:
+          N: "${{ params.N }}"
+          dt: "${{ params.dt }}"
+          steps: "${{ params.steps }}"
+          output_cadence: "${{ params.output_cadence }}"
+    channel:
+      phases: [init, main]
+      regions: [field_update, gradient, fft, measurement, halo_exchange]
+      exclude_from_rates: [init]
+    timeout: "01:00:00"
+
+benchmarks:
+  - name: baseline
+    group: baseline
+    mode: measure
+    machine: hpc-cluster/gpu-node
+    build: release
+    steps: [run]
+    params:
+      N: 128
+      nodes: 1
+      rpn: 1
+      threads: 16
+      gpus_per_rank: 1
+      backend: cuda
+      patch: none
+      dt: 0.01
+      steps: 200
+      output_cadence: 50
+    repeat: 3
+    warmup: 1
+
+  - name: strong-scaling
+    group: scaling
+    mode: measure
+    machine: hpc-cluster/gpu-node
+    build: release
+    steps: [run]
+    params:
+      N: 256
+      rpn: 4
+      threads: 16
+      gpus_per_rank: 1
+      backend: cuda
+      patch: none
+      dt: 0.01
+      steps: 200
+      output_cadence: 50
+    axes:
+      nodes: [1, 2, 4, 8]
+    scaling:
+      kind: strong
+      over: nodes
+      baseline: { nodes: 1 }
+    repeat: 3
+
+  - name: weak-scaling
+    group: scaling
+    mode: measure
+    machine: hpc-cluster/gpu-node
+    build: release
+    steps: [run]
+    params:
+      rpn: 1
+      threads: 16
+      gpus_per_rank: 1
+      backend: cuda
+      patch: none
+      dt: 0.01
+      steps: 200
+      output_cadence: 50
+    axes:
+      ranks: [1, 8, 64]
+    derive:
+      nodes: "ranks"
+      N: "128 * cbrt(ranks)"
+    scaling:
+      kind: weak
+      over: ranks
+      baseline: { ranks: 1 }
+    repeat: 2
+
+  - name: patch-effect
+    group: ablation
+    mode: measure
+    machine: hpc-cluster/gpu-node
+    build: release
+    steps: [run]
+    params:
+      N: 128
+      nodes: 1
+      rpn: 4
+      threads: 16
+      gpus_per_rank: 1
+      backend: cuda
+      dt: 0.01
+      steps: 200
+      output_cadence: 50
+    axes:
+      patch: [none, regions]
+    repeat: 3
+
+  - name: strong-scaling-profile
+    group: scaling
+    mode: profile
+    machine: hpc-cluster/gpu-node
+    build: profile
+    steps: [run]
+    from: strong-scaling
+    where: "params.nodes <= 4"
+    probe:
+      mpi: summary
+      gpu:
+        state: true
+        trace: activity
+
+services:
+  stats.summary:
+    estimator: median
+    ci: { method: bootstrap, level: 0.95, resamples: 10000, seed: 1 }
+    outliers: { method: mad, threshold: 3.5 }
+  sites_per_second:
+    expr: "params.N**3 * reported.steps / phase.main"
+    unit: sites/s
+
+symbols:
+  fold:
+    - { match: 'Kokkos::Impl::[^<]*<.*>', as: 'Kokkos::<impl>' }
+    - { match: '\(anonymous namespace\)::', as: '' }
+  classes:
+    - { match: 'fftw|cufft|rocfft', class: fft }
+
+reports:
+  - name: scaling-summary
+    select:
+      group: scaling
+      mode: measure
+    plots:
+      - type: scaling_plot
+        x: params.nodes
+        y: sites_per_second
+        title: "CosmoLattice Scaling Efficiency"
+    tables:
+      - { rows: benchmark, cols: params.nodes, value: wall_s.median }
+    gates:
+      - { metric: wall_s.median, compare: { benchmark: baseline }, fail_if: "> +15%" }
+    output: [md, html, csv, svg]
+
+  - name: profile-breakdown
+    requires: [T1, M1, G1]
+    select:
+      benchmark: strong-scaling-profile
+    plots:
+      - type: time_budget_bar
+        title: "Time Budget Breakdown"
+      - type: rank_heatmap
+        title: "Per-Rank Wall Time"
+      - type: comm_matrix
+        title: "MPI Peer Communication Matrix"
+    output: [md, html, svg]

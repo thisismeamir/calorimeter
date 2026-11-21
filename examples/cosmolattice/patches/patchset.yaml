@@ -1,0 +1,5 @@
+# PLACEHOLDER: real calo-regions.patch is authored by the engineers
+calo-regions.patch:
+  requires: []
+  conflicts_with: []
+  description: "Placeholder entry for CosmoLattice CALO_CHANNEL phase/region instrumentation patch"

@@ -1,0 +1,30 @@
+schema: calo.inventory/1
+machines:
+  hpc-cluster:
+    connect:
+      type: slurm
+      host: login.example.edu # PLACEHOLDER: cluster login host
+      partitions: [gpu, cpu]
+    node_classes:
+      gpu-node:
+        count: 64
+        partition: gpu
+        node:
+          cpu:
+            model: AMD EPYC 7763
+            cores: 64
+            threads: 64
+          memory:
+            gb: 256
+            numa_nodes: 4
+          gpu:
+            vendor: nvidia
+            model: A100-SXM4-80GB
+            arch: sm_80
+            per_node: 4
+            mem_gb: 80
+            link: nvlink
+    launcher:
+      mpi: "srun -n {ranks} --ntasks-per-node {ranks_per_node}"
+      bind: { cpu: core, gpu: local_rank }
+      gpu_aware_mpi: true

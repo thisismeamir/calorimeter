@@ -1,0 +1,104 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "calo.tables/1"
+title: Calorimeter Sidecar Table Column Specifications
+tables:
+  series.host:
+    columns:
+      - { name: t_ns, type: int64 }
+      - { name: rss_bytes, type: int64 }
+      - { name: utime_ns, type: int64 }
+      - { name: stime_ns, type: int64 }
+      - { name: power_pkg_w, type: float32 }
+      - { name: power_dram_w, type: float32 }
+  profile.samples:
+    columns:
+      - { name: time_ns, type: int64 }
+      - { name: pid, type: int32 }
+      - { name: tid, type: int32 }
+      - { name: cpu, type: int32 }
+      - { name: ip, type: int64 }
+      - { name: chain_start, type: int64 }
+      - { name: chain_len, type: int32 }
+  profile.chains:
+    columns:
+      - { name: ip, type: int64 }
+  profile.maps:
+    columns:
+      - { name: pid, type: int32 }
+      - { name: addr, type: int64 }
+      - { name: len, type: int64 }
+      - { name: pgoff, type: int64 }
+      - { name: prot, type: int32 }
+      - { name: path, type: string_id }
+      - { name: build_id, type: string_id }
+  mpi.peers:
+    columns:
+      - { name: comm_id, type: int32 }
+      - { name: peer_rank, type: int32 }
+      - { name: direction, type: uint8 }
+      - { name: msgs, type: int64 }
+      - { name: bytes, type: int64 }
+  mpi.collectives:
+    columns:
+      - { name: comm_id, type: int32 }
+      - { name: seq, type: int64 }
+      - { name: func, type: string_id }
+      - { name: enter_ns, type: int64 }
+      - { name: exit_ns, type: int64 }
+      - { name: bytes, type: int64 }
+  mpi.trace:
+    columns:
+      - { name: enter_ns, type: int64 }
+      - { name: exit_ns, type: int64 }
+      - { name: func, type: string_id }
+      - { name: comm_id, type: int32 }
+      - { name: peer, type: int32 }
+      - { name: bytes, type: int64 }
+  gpu.state:
+    columns:
+      - { name: t_ns, type: int64 }
+      - { name: util_pct, type: float32 }
+      - { name: mem_used_bytes, type: int64 }
+      - { name: power_w, type: float32 }
+      - { name: sm_mhz, type: int32 }
+      - { name: mem_mhz, type: int32 }
+      - { name: temp_c, type: float32 }
+      - { name: throttle_mask, type: int64 }
+      - { name: link_tx_bytes, type: int64 }
+      - { name: link_rx_bytes, type: int64 }
+  gpu.kernels:
+    columns:
+      - { name: device, type: int32 }
+      - { name: stream, type: int32 }
+      - { name: name, type: string_id }
+      - { name: start_ns, type: int64 }
+      - { name: end_ns, type: int64 }
+      - { name: grid_x, type: int32 }
+      - { name: grid_y, type: int32 }
+      - { name: grid_z, type: int32 }
+      - { name: block_x, type: int32 }
+      - { name: block_y, type: int32 }
+      - { name: block_z, type: int32 }
+      - { name: regs, type: int32 }
+      - { name: smem_bytes, type: int32 }
+      - { name: corr_id, type: int64 }
+      - { name: host_tid, type: int32 }
+      - { name: region, type: string_id }
+  gpu.memcpy:
+    columns:
+      - { name: device, type: int32 }
+      - { name: stream, type: int32 }
+      - { name: kind, type: uint8 }
+      - { name: bytes, type: int64 }
+      - { name: start_ns, type: int64 }
+      - { name: end_ns, type: int64 }
+      - { name: corr_id, type: int64 }
+  gpu.counters:
+    columns:
+      - { name: corr_id, type: int64 }
+      - { name: counter, type: string_id }
+      - { name: value, type: float64 }
+  gpu.clock_correlation:
+    columns:
+      - { name: host_ns, type: int64 }
+      - { name: device_ns, type: int64 }
