@@ -1,13 +1,13 @@
 //! Machine inventory schema (`calo.inventory/1`, spec §7).
-
 use crate::discovery::{FieldProvenance, UnresolvedField};
+#[allow(unused_imports)]
 use crate::error::SchemaError;
 use crate::SchemaDoc;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Connection method for reaching a machine (spec §6.1, §7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ConnectType {
     /// Local host execution.
@@ -19,7 +19,7 @@ pub enum ConnectType {
 }
 
 /// Connection configuration under `machines.<name>.connect` (spec §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MachineConnect {
     /// Connection adapter type (`local`, `ssh`, `slurm`).
     #[serde(rename = "type")]
@@ -39,7 +39,7 @@ pub struct MachineConnect {
 }
 
 /// CPU description in an inventory node or node class (spec §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct InventoryCpu {
     /// CPU model string.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -65,7 +65,7 @@ pub struct InventoryCpu {
 }
 
 /// Cache sizes in an inventory node (spec §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct InventoryCache {
     /// L2 cache in KiB.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -76,7 +76,7 @@ pub struct InventoryCache {
 }
 
 /// Memory configuration in an inventory node (spec §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct InventoryMemory {
     /// Total memory in GiB.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -90,7 +90,7 @@ pub struct InventoryMemory {
 }
 
 /// GPU interconnect link type in inventory (spec §7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GpuLinkType {
     /// NVIDIA NVLink interconnect.
@@ -104,7 +104,7 @@ pub enum GpuLinkType {
 }
 
 /// GPU descriptor in an inventory node (spec §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct InventoryGpu {
     /// GPU vendor (`"nvidia"`, `"amd"`, `"intel"`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -127,7 +127,7 @@ pub struct InventoryGpu {
 }
 
 /// Node hardware summary in `inventory.yaml` (spec §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct InventoryNode {
     /// CPU specification.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -144,7 +144,7 @@ pub struct InventoryNode {
 }
 
 /// Homogeneous node class within a cluster machine (spec §6.5, §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct NodeClass {
     /// Number of nodes in this class.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -160,7 +160,7 @@ pub struct NodeClass {
 }
 
 /// Interconnect fabric type (spec §7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum NetworkType {
     /// InfiniBand fabric.
@@ -172,7 +172,7 @@ pub enum NetworkType {
 }
 
 /// Machine network description (spec §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct InventoryNetwork {
     /// Network fabric technology.
     #[serde(rename = "type")]
@@ -186,7 +186,7 @@ pub struct InventoryNetwork {
 }
 
 /// Calibrated CPU reference capabilities (spec §6.5, §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ReferenceCpu {
     /// Sustained CPU memory bandwidth in GB/s.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -197,7 +197,7 @@ pub struct ReferenceCpu {
 }
 
 /// Calibrated GPU reference capabilities (spec §6.5, §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ReferenceGpu {
     /// Sustained device memory bandwidth in GB/s.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -211,7 +211,7 @@ pub struct ReferenceGpu {
 }
 
 /// Calibrated MPI reference latencies and bandwidth (spec §6.5, §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ReferenceMpi {
     /// Point-to-point latency in microseconds.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -225,7 +225,7 @@ pub struct ReferenceMpi {
 }
 
 /// Provenance metadata for calibrated reference values (spec §6.4, §6.5, §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ReferenceMeasured {
     /// Version of `probe` used for calibration.
     pub probe: String,
@@ -239,7 +239,7 @@ pub struct ReferenceMeasured {
 }
 
 /// Calibrated roofline and interconnect reference data (spec §6.5, §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct InventoryReference {
     /// CPU memory bandwidth and compute peak.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -259,7 +259,7 @@ pub struct InventoryReference {
 }
 
 /// CPU binding mode for launcher (spec §7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CpuBindMode {
     /// Bind ranks to physical cores.
@@ -271,7 +271,7 @@ pub enum CpuBindMode {
 }
 
 /// GPU binding mode for launcher (spec §7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GpuBindMode {
     /// Map GPU ordinal by `local_rank`.
@@ -283,7 +283,7 @@ pub enum GpuBindMode {
 }
 
 /// Launcher CPU and GPU binding configuration (spec §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct LauncherBind {
     /// CPU binding strategy.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -294,7 +294,7 @@ pub struct LauncherBind {
 }
 
 /// MPI launcher configuration in `inventory.yaml` (spec §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct InventoryLauncher {
     /// MPI launch command template (e.g. `"srun -n {ranks} --ntasks-per-node {ranks_per_node}"`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -308,7 +308,7 @@ pub struct InventoryLauncher {
 }
 
 /// Power measurement backend source (spec §7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum PowerSource {
     /// Intel/AMD RAPL energy counters.
@@ -322,7 +322,7 @@ pub enum PowerSource {
 }
 
 /// Machine-specific `probe` overrides in `inventory.yaml` (spec §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct InventoryProbe {
     /// Machine-specific counter alias to raw vendor event overrides (spec §7 R-INV-4).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -336,14 +336,14 @@ pub struct InventoryProbe {
 }
 
 /// CPU isolation list in `policy` (spec §3 I2, §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct PolicyIsolate {
     /// CPU list reserved or isolated (e.g. `"0-3"`).
     pub cpu_list: String,
 }
 
 /// Requested GPU clock policy (spec §7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GpuClockPolicy {
     /// Clocks locked to deterministic base/boost frequency.
@@ -353,7 +353,7 @@ pub enum GpuClockPolicy {
 }
 
 /// Requested machine execution policy (spec §7 R-INV-3).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct InventoryPolicy {
     /// Launcher/OS CPU isolation configuration.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -370,7 +370,7 @@ pub struct InventoryPolicy {
 }
 
 /// Discovery provenance metadata recorded in `inventory.yaml` (spec §6.3, §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct InventoryDiscoveredMeta {
     /// ISO 8601 timestamp when discovery ran.
     pub at: String,
@@ -385,7 +385,7 @@ pub struct InventoryDiscoveredMeta {
 }
 
 /// Machine entry in `inventory.yaml` (spec §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MachineEntry {
     /// How `calo` connects to this machine.
     pub connect: MachineConnect,
@@ -431,7 +431,7 @@ pub struct MachineEntry {
 }
 
 /// Top-level `inventory.yaml` document (`calo.inventory/1`, spec §7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Inventory {
     /// Schema header (`"calo.inventory/1"`).
     pub schema: String,

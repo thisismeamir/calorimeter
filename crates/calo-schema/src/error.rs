@@ -37,4 +37,13 @@ pub enum SchemaError {
     /// Underlying YAML syntax or type deserialization failure (spec §0.1, §0.2).
     #[error("YAML error: {0}")]
     Yaml(String),
+
+    /// A `calo.table/1` header failed column specification validation (spec §11).
+    #[error("invalid table `{table}`: {reason}")]
+    TableValidation {
+        /// Table name.
+        table: String,
+        /// Validation failure reason.
+        reason: String,
+    },
 }

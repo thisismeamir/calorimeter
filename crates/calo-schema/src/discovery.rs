@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Cache hierarchy sizes observed on a CPU node (spec §6.3, §7, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ObservedCache {
     /// L1 data cache size in KiB.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -21,7 +21,7 @@ pub struct ObservedCache {
 }
 
 /// Observed CPU topology and ISA features (spec §6.3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ObservedCpu {
     /// Processor model name string.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -50,7 +50,7 @@ pub struct ObservedCpu {
 }
 
 /// Observed system memory and NUMA layout (spec §6.3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ObservedMemory {
     /// Total physical RAM in bytes.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -73,7 +73,7 @@ pub struct ObservedMemory {
 }
 
 /// Observed OS and power policy state (spec §6.3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ObservedPolicy {
     /// CPU frequency scaling governor (e.g. `"performance"`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -99,7 +99,7 @@ pub struct ObservedPolicy {
 }
 
 /// Observed GPU clock frequencies (spec §6.3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ObservedGpuClocks {
     /// Streaming multiprocessor / compute unit clock in MHz.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -110,7 +110,7 @@ pub struct ObservedGpuClocks {
 }
 
 /// Observed individual GPU device descriptor (spec §6.3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ObservedGpu {
     /// Device ordinal index on the node.
     pub index: u32,
@@ -153,7 +153,7 @@ pub struct ObservedGpu {
 }
 
 /// Observed network interface descriptor (spec §6.3, §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ObservedNic {
     /// Interface or HCA name (e.g. `"mlx5_0"`).
     pub name: String,
@@ -172,7 +172,7 @@ pub struct ObservedNic {
 }
 
 /// Observed MPI installation metadata (spec §6.3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ObservedMpi {
     /// MPI implementation name (e.g. `"openmpi"`, `"mpich"`, `"cray-mpich"`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -192,7 +192,7 @@ pub struct ObservedMpi {
 }
 
 /// Observed hardware and system state shared between `calo.discovery/1` and `calo.record/2` (spec §6.3, §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ObservedHardware {
     /// CPU topology and ISA details.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -227,7 +227,7 @@ pub struct ObservedHardware {
 }
 
 /// Provenance entry for a single discovered field (spec §6.3 B-D3, §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct FieldProvenance {
     /// Source interface or command (e.g. `"/proc/cpuinfo"`, `"nvml"`).
     pub source: String,
@@ -236,7 +236,7 @@ pub struct FieldProvenance {
 }
 
 /// Unresolved discovery field with suggested remediation (spec §6.3 B-D4, §7).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct UnresolvedField {
     /// Dotted field path that could not be resolved.
     pub field: String,
@@ -245,7 +245,7 @@ pub struct UnresolvedField {
 }
 
 /// Discovered toolchain entry (spec §6.3).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct DiscoveredToolchain {
     /// Discovered compilers (e.g. `["gcc 13.2.0", "clang 17.0.6"]`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -265,7 +265,7 @@ pub struct DiscoveredToolchain {
 }
 
 /// Candidate workdir mount discovered from `/proc/mounts` and `df` (spec §6.3).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DiscoveredMount {
     /// Mount path.
     pub path: String,
@@ -276,7 +276,7 @@ pub struct DiscoveredMount {
 }
 
 /// Output of `probe --discover` (`calo.discovery/1`, spec §6.3).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Discovery {
     /// Schema header (`"calo.discovery/1"`).
     pub schema: String,

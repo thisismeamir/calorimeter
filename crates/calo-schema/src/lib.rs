@@ -9,6 +9,8 @@ pub mod record;
 pub mod runspec;
 pub mod suite;
 pub mod table;
+pub mod tables;
+pub mod schema_gen;
 
 pub use common::{
     CallgraphMethod, Confidence, CpuTier, GpuTier, Mode, MpiTier, RegionStorageMode, ScalarValue,
@@ -30,6 +32,23 @@ use serde::{Deserialize, Serialize};
 pub mod yaml {
     pub use serde_yaml_ng::{from_str, to_string, to_value, from_value, Error, Mapping, Value};
 }
+
+
+/// `schemars` schema helper for arbitrary YAML values (`calo_schema::yaml::Value`).
+pub fn yaml_value_schema(_gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+    schemars::schema::Schema::Bool(true)
+}
+
+/// `schemars` schema helper for `BTreeMap<String, crate::yaml::Value>` fields.
+pub fn yaml_map_schema(_gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+    let mut obj = schemars::schema::SchemaObject {
+        instance_type: Some(schemars::schema::InstanceType::Object.into()),
+        ..Default::default()
+    };
+    obj.object().additional_properties = Some(Box::new(schemars::schema::Schema::Bool(true)));
+    schemars::schema::Schema::Object(obj)
+}
+
 
 /// Trait implemented by every top-level Calorimeter YAML document (spec §0.2).
 pub trait SchemaDoc: Sized {

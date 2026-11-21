@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// NUMA placement policy for a launched rank (spec §9.9).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum NumaPolicy {
     /// Bind memory allocations to specified NUMA nodes.
@@ -19,7 +19,7 @@ pub enum NumaPolicy {
 }
 
 /// CPU and NUMA affinity settings in `calo.runspec/1` (spec §9.9).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RunSpecAffinity {
     /// Linux CPU list string (e.g. `"4-67"`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -30,7 +30,7 @@ pub struct RunSpecAffinity {
 }
 
 /// Process resource limits in `calo.runspec/1` (spec §9.9).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct RunSpecRlimits {
     /// Core dump size limit in bytes.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -38,7 +38,7 @@ pub struct RunSpecRlimits {
 }
 
 /// CPU stack sampling configuration in `calo.runspec/1` and `calo.suite/1` (spec §8.5, §9.3, §9.9).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RunSpecProfile {
     /// Sampling frequency in Hz (default 499).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -58,7 +58,7 @@ pub struct RunSpecProfile {
 }
 
 /// MPI tracing mode (spec §8.5, §9.5, §9.9).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum MpiTraceMode {
     /// No PMPI shim activity.
@@ -70,7 +70,7 @@ pub enum MpiTraceMode {
 }
 
 /// MPI configuration inside `calo.runspec/1` (spec §9.9).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RunSpecMpi {
     /// MPI instrumentation mode.
     pub mode: MpiTraceMode,
@@ -80,7 +80,7 @@ pub struct RunSpecMpi {
 }
 
 /// GPU activity trace mode (spec §8.5, §9.6).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GpuTraceMode {
     /// No GPU activity tracing (G0 only).
@@ -90,7 +90,7 @@ pub enum GpuTraceMode {
 }
 
 /// GPU tracing source (spec §8.5, §9.6 B25, §10).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GpuTraceSource {
     /// Shim loaded directly into the workload process.
@@ -100,7 +100,7 @@ pub enum GpuTraceSource {
 }
 
 /// GPU configuration in `calo.runspec/1` and `calo.suite/1` (spec §8.5, §9.6, §9.9).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct RunSpecGpu {
     /// Whether to sample G0 device state out-of-process.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -132,21 +132,21 @@ pub struct RunSpecGpu {
 }
 
 /// Rank identification settings in `calo.runspec/1` (spec §9.5 B14, §9.9).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RunSpecRank {
     /// Discover rank, size, and local_rank from launcher environment variables.
     pub from_env: bool,
 }
 
 /// Output directory specification in `calo.runspec/1` (spec §9.9).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RunSpecOutputs {
     /// Path to the directory where `probe` writes `rank<k>.yaml` and sidecars.
     pub dir: String,
 }
 
 /// Input specification consumed by `probe --runspec` (`calo.runspec/1`, spec §9.9).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RunSpec {
     /// Schema header (`"calo.runspec/1"`).
     pub schema: String,

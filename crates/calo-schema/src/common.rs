@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Unified capability tier identifier used in `requires` lists and selectors (spec §2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum Tier {
     /// CPU Tier 0: Time, rusage, counters, series.
     T0,
@@ -44,7 +44,7 @@ impl fmt::Display for Tier {
 }
 
 /// CPU capability tier (spec §2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum CpuTier {
     /// Time, rusage, counters, series.
     T0,
@@ -55,7 +55,7 @@ pub enum CpuTier {
 }
 
 /// MPI capability tier (spec §2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum MpiTier {
     /// Placement, per-rank records, MPI time via stack classification.
     M0,
@@ -66,7 +66,7 @@ pub enum MpiTier {
 }
 
 /// GPU capability tier (spec §2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum GpuTier {
     /// Device inventory, utilization, memory, power, clocks, throttling.
     G0,
@@ -77,7 +77,7 @@ pub enum GpuTier {
 }
 
 /// Active capability tiers per domain for a run or machine (spec §2, §9.0, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct TiersActive {
     /// Highest active CPU tier.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -108,7 +108,7 @@ impl TiersActive {
 }
 
 /// Benchmark execution mode (spec §8.5 R-BEN-3, §9.9, §10).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Mode {
     /// T0, G0, M0 only; source of headline metrics.
@@ -120,7 +120,7 @@ pub enum Mode {
 }
 
 /// Run completion status (spec §8.4 R-STP-7, §10).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Status {
     /// Workload completed with zero exit code and valid measurements.
@@ -134,7 +134,7 @@ pub enum Status {
 }
 
 /// Provenance confidence level for discovered hardware fields (spec §6.3 B-D3).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Confidence {
     /// Directly measured by microbenchmark or hardware probe.
@@ -148,7 +148,7 @@ pub enum Confidence {
 }
 
 /// Standardized warning and error codes (spec §17).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum WarningCode {
     /// Observed hardware differs from declared inventory.
@@ -182,7 +182,7 @@ pub enum WarningCode {
 }
 
 /// Structured warning or error entry in `provenance.warnings` and `provenance.errors` (spec §10, §17).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Warning {
     /// Normative warning/error code.
     pub code: WarningCode,
@@ -191,7 +191,7 @@ pub struct Warning {
 }
 
 /// Callgraph unwinding method for CPU profiling (spec §8.5, §9.3 B8, §10).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CallgraphMethod {
     /// Frame pointer unwinding.
@@ -201,7 +201,7 @@ pub enum CallgraphMethod {
 }
 
 /// Shim injection mechanism (spec §9.8).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ShimInject {
     /// Dynamic injection via `LD_PRELOAD` / vendor injection env vars.
@@ -213,7 +213,7 @@ pub enum ShimInject {
 }
 
 /// Region storage strategy in `probe` (spec §9.4, §9.9).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RegionStorageMode {
     /// Per-event call trees.
@@ -223,7 +223,7 @@ pub enum RegionStorageMode {
 }
 
 /// Scalar parameter value used in `params`, `defaults`, and `axes` (spec §0.1, §8.5, §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(untagged)]
 pub enum ScalarValue {
     /// Signed 64-bit integer.

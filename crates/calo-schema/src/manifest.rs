@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Suite identity and hash inside `manifest.yaml` (spec §15).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ManifestSuite {
     /// Suite name.
     pub name: String,
@@ -20,7 +20,7 @@ pub struct ManifestSuite {
 }
 
 /// Pinned run entry inside `manifest.yaml` (spec §15).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ManifestRun {
     /// Deterministic run identifier.
     pub run_id: String,
@@ -44,7 +44,7 @@ pub struct ManifestRun {
 }
 
 /// Resolved configuration manifest (`calo.manifest/1`, spec §15).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Manifest {
     /// Schema header (`"calo.manifest/1"`).
     pub schema: String,
@@ -55,6 +55,7 @@ pub struct Manifest {
     /// `calo` version string.
     pub calo: String,
     /// Full resolved configuration with origin layer metadata per key (spec §5.1, §15).
+    #[schemars(schema_with = "crate::yaml_map_schema")]
     pub resolved: BTreeMap<String, crate::yaml::Value>,
     /// Snapshot of the machine inventory used for resolution.
     pub inventory_snapshot: Inventory,

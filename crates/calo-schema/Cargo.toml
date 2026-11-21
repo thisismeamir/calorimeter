@@ -7,3 +7,4 @@ edition = "2021"
 serde = { workspace = true }
 serde_yaml_ng = { workspace = true }
 thiserror = { workspace = true }
+schemars = {workspace = true}

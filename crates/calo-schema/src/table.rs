@@ -1,3 +1,4 @@
+
 //! Binary sidecar table header and reference definitions (`calo.table/1`, spec §10, §11).
 
 use crate::error::SchemaError;
@@ -6,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Sidecar reference stored inside `calo.record/2` observation blocks (spec §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Sidecar {
     /// Relative path to the sidecar file or directory.
     pub path: String,
@@ -21,9 +22,27 @@ pub struct Sidecar {
 }
 
 /// Column data type in a `calo.table/1` binary sidecar (spec §11).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+    schemars::JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum ColumnType {
+    /// 8-bit unsigned integer (LE).
+    Uint8,
+    /// 32-bit unsigned integer (LE).
+    Uint32,
+    /// 64-bit unsigned integer (LE).
+    Uint64,
     /// 32-bit signed integer (LE).
     Int32,
     /// 64-bit signed integer (LE).
@@ -32,8 +51,8 @@ pub enum ColumnType {
     Float32,
     /// 64-bit IEEE-754 float (LE).
     Float64,
-    /// 8-bit unsigned integer.
-    Uint8,
+    /// Boolean, encoded as 0 or 1.
+    Bool,
     /// 32-bit string dictionary index (LE).
     StringId,
 }
@@ -42,15 +61,18 @@ impl ColumnType {
     /// Byte width of a single element of this column type (spec §11).
     pub const fn byte_width(self) -> usize {
         match self {
-            Self::Uint8 => 1,
-            Self::Int32 | Self::Float32 | Self::StringId => 4,
-            Self::Int64 | Self::Float64 => 8,
+            Self::Uint8 | Self::Bool => 1,
+            Self::Uint32
+            | Self::Int32
+            | Self::Float32
+            | Self::StringId => 4,
+            Self::Uint64 | Self::Int64 | Self::Float64 => 8,
         }
     }
 }
 
 /// Column descriptor in a `calo.table/1` header (spec §11).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ColumnDef {
     /// Column name (with unit suffix per spec §0.3).
     pub name: String,
@@ -60,7 +82,7 @@ pub struct ColumnDef {
 }
 
 /// YAML header embedded in a `calo.table/1` binary sidecar file (spec §11).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct TableHeader {
     /// Schema header (`"calo.table/1"`).
     pub schema: String,
@@ -90,11 +112,13 @@ impl SchemaDoc for TableHeader {
                 found: self.schema.clone(),
             });
         }
+
         if self.table.is_empty() {
             return Err(SchemaError::MissingRequiredField {
                 field: "table".to_string(),
             });
         }
+
         Ok(())
     }
 }

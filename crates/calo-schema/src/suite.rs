@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Suite metadata header under `suite:` (spec §8).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SuiteMeta {
     /// Suite name.
     pub name: String,
@@ -21,7 +21,7 @@ pub struct SuiteMeta {
 }
 
 /// Git source repository definition under `sources:` (spec §8.1).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SourceDef {
     /// Git repository URL or path.
     pub git: String,
@@ -33,7 +33,7 @@ pub struct SourceDef {
 }
 
 /// Patch conflict resolution behavior (spec §8.2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum PatchConflictPolicy {
     /// Fail the build/run if a patch does not apply cleanly.
@@ -43,7 +43,7 @@ pub enum PatchConflictPolicy {
 }
 
 /// Patch application strategy (spec §8.2).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct PatchApplyConfig {
     /// Application method (e.g. `"git-apply"`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -57,7 +57,7 @@ pub struct PatchApplyConfig {
 }
 
 /// Patch sets configuration under `patches:` (spec §8.2).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct PatchesConfig {
     /// Directory containing `.patch` files and optional `patchset.yaml`.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -71,7 +71,7 @@ pub struct PatchesConfig {
 }
 
 /// Optional `patchset.yaml` per-patch metadata (spec §8.2 R-PAT-4).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct PatchMetadata {
     /// Required source version constraints.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -85,7 +85,7 @@ pub struct PatchMetadata {
 }
 
 /// GPU/accelerator compute backend for a build (spec §8.3).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum BuildBackend {
     /// NVIDIA CUDA backend.
@@ -99,7 +99,7 @@ pub enum BuildBackend {
 }
 
 /// Rebuild cache policy (spec §8.3 R-BLD-2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RebuildPolicy {
     /// Reuse existing build matching the cache key.
@@ -109,7 +109,7 @@ pub enum RebuildPolicy {
 }
 
 /// Debug info requirement for a build (spec §8.3 R-BLD-3).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DebugInfoPolicy {
     /// Debug symbols and frame pointers are mandatory (required for `mode: profile`).
@@ -119,7 +119,7 @@ pub enum DebugInfoPolicy {
 }
 
 /// Build variant definition under `builds:` (spec §8.3).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct BuildDef {
     /// Opaque shell script to configure and compile the target.
     pub run: String,
@@ -144,10 +144,13 @@ pub struct BuildDef {
     /// Whether to measure build time itself as a benchmark (R-BLD-7).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub measured: Option<bool>,
+    /// Declared output artifact glob patterns for SHA-256 hashing (spec §8.3 R-BLD-2).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artifacts: Vec<String>,
 }
 
 /// Value that may be either an integer literal or an interpolated `${{ expr }}` string (spec §8.4).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(untagged)]
 pub enum IntOrExpr {
     /// Literal unsigned integer.
@@ -157,7 +160,7 @@ pub enum IntOrExpr {
 }
 
 /// Resource requirements for a step (spec §8.4).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct StepResources {
     /// Number of nodes to allocate.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -174,7 +177,7 @@ pub struct StepResources {
 }
 
 /// Rendered input file template specification in a step (spec §8.4 R-STP-3, R-STP-8).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct StepFileTemplate {
     /// Relative path to the template file.
     pub template: String,
@@ -184,7 +187,7 @@ pub struct StepFileTemplate {
 }
 
 /// Channel expectation descriptor on a step (spec §8.4).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct StepChannelConfig {
     /// Declared workload phases (e.g. `["init", "main"]`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -198,7 +201,7 @@ pub struct StepChannelConfig {
 }
 
 /// Execution step definition under `steps:` (spec §8.4).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct StepDef {
     /// Shell command to execute.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -227,7 +230,7 @@ pub struct StepDef {
 }
 
 /// Matrix axis expansion mode (spec §8.5).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExpandMode {
     /// Cartesian product of all axis values.
@@ -239,7 +242,7 @@ pub enum ExpandMode {
 }
 
 /// Scaling study kind (spec §8.5 R-BEN-5).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ScalingKind {
     /// Fixed total problem size across increasing resources: `T(base)*P(base) / (T*P)`.
@@ -249,7 +252,7 @@ pub enum ScalingKind {
 }
 
 /// Resource axis over which scaling efficiency is computed (spec §8.5 R-BEN-5).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ScalingOver {
     /// Scale over node count.
@@ -261,7 +264,7 @@ pub enum ScalingOver {
 }
 
 /// Scaling metadata on a benchmark (spec §8.5 R-BEN-5).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ScalingConfig {
     /// Strong or weak scaling formula.
     pub kind: ScalingKind,
@@ -272,7 +275,7 @@ pub struct ScalingConfig {
 }
 
 /// OpenMP instrumentation mode in `probe:` (spec §8.5, §9.5 B22).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum OmpMode {
     /// Stack frame classification only.
@@ -282,7 +285,7 @@ pub enum OmpMode {
 }
 
 /// MPI instrumentation shorthand on a benchmark `probe:` block (spec §8.5).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum BenchmarkMpiMode {
     /// No MPI shim.
@@ -294,7 +297,7 @@ pub enum BenchmarkMpiMode {
 }
 
 /// Probe configuration nested under a benchmark in `suite.yaml` (spec §8.5).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct BenchmarkProbeConfig {
     /// Counter aliases to collect.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -317,7 +320,7 @@ pub struct BenchmarkProbeConfig {
 }
 
 /// Slurm job batching granularity (spec §8.5, §15).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum BatchMode {
     /// One scheduler job per individual run.
@@ -327,7 +330,7 @@ pub enum BatchMode {
 }
 
 /// Target machine reference on a benchmark (either `"name"` / `"name/class"` or a selector map, spec §8.5).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(untagged)]
 pub enum MachineTarget {
     /// Direct machine name or `machine/node_class` string.
@@ -337,7 +340,7 @@ pub enum MachineTarget {
 }
 
 /// Benchmark definition in `suite.yaml` (spec §8.5).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct BenchmarkDef {
     /// Unique benchmark name.
     pub name: String,
@@ -413,7 +416,7 @@ pub struct BenchmarkDef {
 }
 
 /// Confidence interval configuration for `stats.summary` (spec §12.2).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct CiConfig {
     /// CI method (e.g. `"bootstrap"`).
     pub method: String,
@@ -426,7 +429,7 @@ pub struct CiConfig {
 }
 
 /// Outlier filter configuration for `stats.summary` (spec §12.2).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct OutlierConfig {
     /// Outlier detection method (e.g. `"mad"`).
     pub method: String,
@@ -435,7 +438,7 @@ pub struct OutlierConfig {
 }
 
 /// Service configuration or definition entry under `services:` (spec §12.2).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ServiceConfig {
     /// Estimator for `stats.summary` (`"median"` or `"mean"`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -467,7 +470,7 @@ pub struct ServiceConfig {
 }
 
 /// Symbol folding rule in `symbols.fold` (spec §12.1).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SymbolFoldRule {
     /// Regex pattern to match against demangled symbol names.
     #[serde(rename = "match")]
@@ -478,7 +481,7 @@ pub struct SymbolFoldRule {
 }
 
 /// Symbol classification rule in `symbols.classes` (spec §12.1).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SymbolClassRule {
     /// Regex pattern to match against symbol/kernel names.
     #[serde(rename = "match")]
@@ -488,7 +491,7 @@ pub struct SymbolClassRule {
 }
 
 /// Symbol normalization and classification configuration (spec §8, §12.1).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct SymbolsConfig {
     /// Ordered regex replacement rules to collapse template/wrapper noise.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -499,7 +502,7 @@ pub struct SymbolsConfig {
 }
 
 /// Single selector clause for filtering benchmarks/runs (spec §5.3).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct SelectorClause {
     /// Benchmark name or glob pattern.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -522,7 +525,7 @@ pub struct SelectorClause {
 }
 
 /// Report `select:` specification (`"all"`, a single selector, or a union list of selectors, spec §5.3, §13).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(untagged)]
 pub enum ReportSelect {
     /// Keyword `"all"`.
@@ -534,7 +537,7 @@ pub enum ReportSelect {
 }
 
 /// Plot axis scaling configuration (spec §13).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct PlotScale {
     /// X-axis scale (e.g. `"linear"`, `"log"`, `"log2"`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -545,7 +548,7 @@ pub struct PlotScale {
 }
 
 /// Plot specification inside a report (spec §13).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ReportPlot {
     /// Built-in or external plot type (e.g. `"line"`, `"bar"`, `"roofline"`).
     #[serde(rename = "type")]
@@ -574,7 +577,7 @@ pub struct ReportPlot {
 }
 
 /// Pivot table specification inside a report (spec §13).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ReportTable {
     /// Row grouping key (e.g. `"params.patch"`).
     pub rows: String,
@@ -585,7 +588,7 @@ pub struct ReportTable {
 }
 
 /// Regression gate specification inside a report (spec §13 R-REP-4).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ReportGate {
     /// Metric to evaluate (e.g. `"wall_s.median"`).
     pub metric: String,
@@ -597,7 +600,7 @@ pub struct ReportGate {
 }
 
 /// Report output format (spec §13).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ReportOutputFormat {
     /// Markdown format.
@@ -607,16 +610,14 @@ pub enum ReportOutputFormat {
     /// PDF document format.
     Pdf,
     /// Comma-separated values format.
-    #[serde(
-        alias = "csv"
-    )]
+    #[serde(alias = "csv")]
     Csv,
     /// Scalable Vector Graphics format.
     Svg,
 }
 
 /// Report definition under `reports:` (spec §13).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ReportDef {
     /// Report name.
     pub name: String,
@@ -641,7 +642,7 @@ pub struct ReportDef {
 }
 
 /// Run ordering policy in `options:` (spec §8, §15).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RunOrder {
     /// Interleave repetitions and scales across runs (default).
@@ -653,7 +654,7 @@ pub enum RunOrder {
 }
 
 /// Failure handling policy in `options:` (spec §8.4 R-STP-7, §8).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum OnFailurePolicy {
     /// Record failed run and continue suite execution (default).
@@ -663,7 +664,7 @@ pub enum OnFailurePolicy {
 }
 
 /// Suite-wide options under `options:` (spec §7 R-INV-2, §8, §15, §16 R-SAF-5).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct SuiteOptions {
     /// Treat hardware mismatches between inventory and observed node as errors (R-INV-2).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -680,7 +681,7 @@ pub struct SuiteOptions {
 }
 
 /// Top-level `suite.yaml` document (`calo.suite/1`, spec §8).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Suite {
     /// Schema header (`"calo.suite/1"`).
     pub schema: String,

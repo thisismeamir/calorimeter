@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Record identity block (`identity:` in `calo.record/2`, spec §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RecordIdentity {
     /// Deterministic run identifier.
     pub run_id: String,
@@ -55,7 +55,7 @@ pub struct RecordIdentity {
 }
 
 /// Rank resource placement recorded in `environment.placement` (spec §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct RecordPlacement {
     /// Allowed/bound Linux CPU list string.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -75,7 +75,7 @@ pub struct RecordPlacement {
 }
 
 /// Device ownership entry in `environment.devices` (spec §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DeviceOwners {
     /// Device index on the node.
     pub index: u32,
@@ -84,7 +84,7 @@ pub struct DeviceOwners {
 }
 
 /// Individual applied patch hash entry in `environment.patchset` (spec §8.2 R-PAT-3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct AppliedPatch {
     /// Patch filename.
     pub file: String,
@@ -93,7 +93,7 @@ pub struct AppliedPatch {
 }
 
 /// Patchset provenance in `environment.patchset` (spec §8.2 R-PAT-3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RecordPatchset {
     /// Patch set name.
     pub name: String,
@@ -105,7 +105,7 @@ pub struct RecordPatchset {
 }
 
 /// Build provenance in `environment.build` (spec §8.3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RecordBuild {
     /// Build variant name.
     pub name: String,
@@ -126,7 +126,7 @@ pub struct RecordBuild {
 }
 
 /// Rendered template file entry in `environment.rendered_files` (spec §8.4 R-STP-3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RenderedFile {
     /// Relative path to rendered file.
     pub path: String,
@@ -135,7 +135,7 @@ pub struct RenderedFile {
 }
 
 /// MPI library identity in `environment.mpi_lib` (spec §8.3 R-BLD-5, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RecordMpiLib {
     /// MPI library name.
     pub name: String,
@@ -144,7 +144,7 @@ pub struct RecordMpiLib {
 }
 
 /// Environment block in `calo.record/2` (`environment:`, spec §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RecordEnvironment {
     /// Machine name from inventory.
     pub machine: String,
@@ -156,6 +156,7 @@ pub struct RecordEnvironment {
     pub fingerprint: Option<String>,
     /// Declared hardware snapshot from `inventory.yaml`.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(schema_with = "crate::yaml_map_schema")]
     pub declared: BTreeMap<String, crate::yaml::Value>,
     /// Hardware and policy observed at runtime by `probe` (spec §7 R-INV-2, §10).
     pub observed: ObservedHardware,
@@ -190,7 +191,7 @@ pub struct RecordEnvironment {
 
 /// Energy consumption measurements in Joules (`energy_j`, spec §0.3, §10).
 /// Unmeasured domains MUST be `None` (omitted); a measured 0.0 is `Some(0.0)`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct EnergyJoules {
     /// CPU package energy in Joules.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -211,7 +212,7 @@ impl EnergyJoules {
 }
 
 /// Hardware performance counter measurement (`scalars.counters.<alias>`, spec §9.3 B3, §10 R-REC-5).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Counter {
     /// Raw counter value.
     pub value: u64,
@@ -224,7 +225,7 @@ pub struct Counter {
 }
 
 /// End-of-run scalar measurements (`observations.scalars`, T0, spec §9.3 B2, §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct RecordScalars {
     /// Elapsed wall-clock time in seconds.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -265,7 +266,7 @@ pub struct RecordScalars {
 }
 
 /// Timestamp span for a workload phase (`observations.phases.<name>`, spec §9.4, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct PhaseSpan {
     /// Monotonic start timestamp in nanoseconds.
     pub start_ns: i64,
@@ -274,7 +275,7 @@ pub struct PhaseSpan {
 }
 
 /// Recursive call-tree node for instrumented code regions (T2, spec §9.4, §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RegionNode {
     /// Region name.
     pub name: String,
@@ -290,7 +291,7 @@ pub struct RegionNode {
 }
 
 /// Per-thread region tree (`observations.regions.threads[i]`, spec §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ThreadRegions {
     /// OS thread ID (`tid`).
     pub tid: i64,
@@ -299,14 +300,14 @@ pub struct ThreadRegions {
 }
 
 /// Region observations block (`observations.regions`, T2, spec §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct Regions {
     /// Per-thread region call trees.
     pub threads: Vec<ThreadRegions>,
 }
 
 /// Workload-reported metric via `CALO_CHANNEL` (`observations.reported.<key>`, spec §9.4, §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ReportedMetric {
     /// Numeric metric value.
     pub value: f64,
@@ -316,7 +317,7 @@ pub struct ReportedMetric {
 }
 
 /// Loaded executable/shared library module for symbolization (`observations.profile.modules[i]`, spec §9.3 B10, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ProfileModule {
     /// Filesystem path to the mapped binary/library.
     pub path: String,
@@ -329,7 +330,7 @@ pub struct ProfileModule {
 }
 
 /// CPU stack sampling observations block (`observations.profile`, T1, spec §9.3, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RecordProfile {
     /// Stack unwinding method (`fp` or `dwarf`).
     pub method: CallgraphMethod,
@@ -347,7 +348,7 @@ pub struct RecordProfile {
 }
 
 /// Aggregated per-(function, communicator) MPI statistics (M1, spec §9.5 B17, §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MpiFunctionSummary {
     /// MPI function name (e.g. `"MPI_Allreduce"`).
     pub name: String,
@@ -371,7 +372,7 @@ pub struct MpiFunctionSummary {
 }
 
 /// Cross-node clock synchronization parameters (`observations.mpi.clock_sync`, spec §9.7 B33, §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MpiClockSync {
     /// Estimated clock offset to rank 0 at `MPI_Init` in nanoseconds.
     pub offset_ns: i64,
@@ -384,7 +385,7 @@ pub struct MpiClockSync {
 }
 
 /// MPI observations block (`observations.mpi`, M1/M2, spec §9.5, §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RecordMpi {
     /// Provided MPI thread support level (e.g. `"MPI_THREAD_MULTIPLE"`).
     pub thread_level: String,
@@ -408,7 +409,7 @@ pub struct RecordMpi {
 }
 
 /// Per-GPU device observations (`observations.gpu.devices[i]`, G0–G2, spec §9.6, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RecordGpuDevice {
     /// Device index on the node.
     pub index: u32,
@@ -436,7 +437,7 @@ pub struct RecordGpuDevice {
 }
 
 /// GPU observations block (`observations.gpu`, G0–G2, spec §9.6, §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RecordGpu {
     /// Per-device sidecar references.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -451,7 +452,7 @@ pub struct RecordGpu {
 
 /// Observations container in `calo.record/2` (spec §10).
 /// Each block is `Option` and present iff its tier is active in `provenance.tiers_active` (R-REC-8).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct RecordObservations {
     /// T0 scalar resource and counter measurements.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -483,7 +484,7 @@ pub struct RecordObservations {
 }
 
 /// Shim version strings in `provenance.shim_versions` (spec §10, §18).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ShimVersions {
     /// MPI PMPI shim version.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -494,7 +495,7 @@ pub struct ShimVersions {
 }
 
 /// Workload process exit status in `provenance.exit` (spec §9.3 B6, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ExitInfo {
     /// Process exit code (if exited normally or via signal convention).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -505,7 +506,7 @@ pub struct ExitInfo {
 }
 
 /// Overflow counters for ring buffers and sidecar writer queues (`provenance.trace_overflow`, spec §9.2 B-O2, §10).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct TraceOverflow {
     /// Dropped MPI event trace records.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -519,7 +520,7 @@ pub struct TraceOverflow {
 }
 
 /// Provenance block in `calo.record/2` (`provenance:`, spec §10).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RecordProvenance {
     /// Version of `probe` that produced this record.
     pub probe_version: String,
@@ -561,7 +562,7 @@ pub struct RecordProvenance {
 }
 
 /// Statistical summary across ranks in aggregate `run.yaml` (spec §10 R-REC-7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RankAggregateStats {
     /// Minimum value across ranks.
     pub min: f64,
@@ -569,12 +570,12 @@ pub struct RankAggregateStats {
     pub mean: f64,
     /// Maximum value across ranks.
     pub max: f64,
-    /// Load imbalance ratio (`max / mean`).
-    pub imbalance: f64,
+    /// Load imbalance ratio (`max / mean`), omitted when `mean <= 0.0`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imbalance: Option<f64>,
 }
-
 /// Optional run-level aggregation block present in `run.yaml` (spec §10 R-REC-7).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct RunLevelAggregate {
     /// Relative paths to all constituent `rank<k>.yaml` records.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -592,7 +593,7 @@ pub struct RunLevelAggregate {
 
 /// Run record document (`calo.record/2`, spec §10).
 /// Field declaration order matches normative emission order.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Record {
     /// Schema header (`"calo.record/2"`).
     pub schema: String,
@@ -666,7 +667,7 @@ impl Record {
         let obs = &self.observations;
 
         // CPU T0 blocks: scalars, series
-        if obs.scalars.is_some() && !tiers.satisfies( crate::common::Tier::T0 ) {
+        if obs.scalars.is_some() && !tiers.satisfies(crate::common::Tier::T0) {
             return Err(SchemaError::InactiveTierObservation {
                 block: "observations.scalars",
                 required_tier: "T0",
