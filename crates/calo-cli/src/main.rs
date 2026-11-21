@@ -4,6 +4,10 @@
 pub mod cli;
 pub mod lint;
 pub mod plan_cmd;
+pub mod run_cmd;
+pub mod spec_cmd;
+// Analyze CMD implementation is hanging...
+pub mod analyze_cmd;
 
 use clap::Parser;
 use cli::{Cli, Command};
@@ -56,7 +60,6 @@ fn run_command(args: &Cli) -> anyhow::Result<u8> {
             }
         }
         Command::Plan { format } => {
-            // Validate via lint first; if lint fails, report and exit with LINT_FAILURE (2).
             let diagnostics = lint::lint_files(&args.suite, &args.inventory, &args.set);
             if !diagnostics.is_empty() {
                 for diag in &diagnostics {
@@ -69,6 +72,57 @@ fn run_command(args: &Cli) -> anyhow::Result<u8> {
                 print!("{output}");
             }
             Ok(exit_codes::SUCCESS)
+        }
+        Command::Run {
+            select,
+            force,
+            dry_run,
+            probe,
+        } => {
+            let diagnostics = lint::lint_files(&args.suite, &args.inventory, &args.set);
+            if !diagnostics.is_empty() {
+                for diag in &diagnostics {
+                    eprintln!("{diag}");
+                }
+                return Ok(exit_codes::LINT_FAILURE);
+            }
+            run_cmd::execute_run(
+                &args.suite,
+                &args.inventory,
+                &args.results,
+                &args.set,
+                select.as_deref(),
+                *force,
+                *dry_run,
+                probe.as_deref(),
+                args.quiet,
+            )
+        }
+        Command::Spec {
+            connect,
+            machine,
+            out,
+            merge,
+            list_partitions,
+            partitions,
+            yes,
+            probe,
+        } => {
+            let out_path = out.as_deref().unwrap_or(&args.inventory);
+            spec_cmd::execute_spec(
+                connect,
+                machine,
+                out_path,
+                *merge,
+                *list_partitions,
+                partitions,
+                *yes,
+                probe.as_deref(),
+                args.quiet,
+            )
+        }
+        Command::Verify { machine, probe } => {
+            spec_cmd::execute_verify(&args.inventory, machine, probe.as_deref(), args.quiet)
         }
     }
 }
