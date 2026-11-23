@@ -1,7 +1,8 @@
-//! Built-in and expression-defined analysis services (`calo-core::services`, spec §12).
+//! Built-in, table-based, and expression-defined analysis services (`calo-core::services`, spec §12).
 
 pub mod builtins;
 pub mod error;
+pub mod extended;
 pub mod frame;
 pub mod registry;
 
@@ -10,6 +11,11 @@ pub use builtins::{
     StatsSummaryService,
 };
 pub use error::ServiceError;
+pub use extended::{
+    CommFractionService, CommMatrixService, CompareService, GpuUtilizationService,
+    KernelHotspotsService, LaunchOverheadService, MessageSizeProfileService, RegionBreakdownService,
+    ScalingFitService, StubService, TransferSummaryService,
+};
 pub use frame::{Column, Frame};
 pub use registry::{Options, ServiceLayer, ServiceRegistry};
 

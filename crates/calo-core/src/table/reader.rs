@@ -3,7 +3,7 @@
 use crate::table::block::{Block, ColumnData};
 use crate::table::crc32::crc32_ieee;
 use crate::table::error::TableError;
-use crate::table::TABLE_MAGIC;
+use crate::table::{MAX_HEADER_SIZE, TABLE_MAGIC};
 use calo_schema::from_yaml_str;
 use calo_schema::table::{ColumnType, TableHeader};
 use std::collections::BTreeMap;
@@ -35,8 +35,14 @@ pub fn open_reader<R: Read>(mut reader: R) -> Result<TableReader<R>, TableError>
     read_exact_or_header_eof(&mut reader, &mut len_bytes)?;
     let header_len = u32::from_le_bytes(len_bytes) as usize;
 
+    // Prevent unreasonable allocations from malformed or truncated headers.
+    if header_len > MAX_HEADER_SIZE {
+        return Err(TableError::InvalidHeaderLength { length: header_len });
+    }
+
     let mut header_buf = vec![0u8; header_len];
     read_exact_or_header_eof(&mut reader, &mut header_buf)?;
+
     let header_str = std::str::from_utf8(&header_buf)?;
     let header: TableHeader = from_yaml_str(header_str)?;
 
@@ -195,41 +201,52 @@ fn decode_column(col_type: ColumnType, slice: &[u8], rows: usize) -> ColumnData 
     match col_type {
         ColumnType::Int32 => {
             let mut out = Vec::with_capacity(rows);
-            for chunk in slice.chunks_exact(4) {
-                out.push(i32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]));
+            for chunk in slice.as_chunks::<4>().0 {
+                out.push(i32::from_le_bytes(*chunk));
             }
             ColumnData::Int32(out)
         }
+        ColumnType::Uint32 => {
+            let mut out = Vec::with_capacity(rows);
+            for chunk in slice.as_chunks::<4>().0 {
+                out.push(u32::from_le_bytes(*chunk));
+            }
+            ColumnData::Uint32(out)
+        }
         ColumnType::Int64 => {
             let mut out = Vec::with_capacity(rows);
-            for chunk in slice.chunks_exact(8) {
-                out.push(i64::from_le_bytes([
-                    chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
-                ]));
+            for chunk in slice.as_chunks::<8>().0 {
+                out.push(i64::from_le_bytes(*chunk));
             }
             ColumnData::Int64(out)
         }
+        ColumnType::Uint64 => {
+            let mut out = Vec::with_capacity(rows);
+            for chunk in slice.as_chunks::<8>().0 {
+                out.push(u64::from_le_bytes(*chunk));
+            }
+            ColumnData::Uint64(out)
+        }
         ColumnType::Float32 => {
             let mut out = Vec::with_capacity(rows);
-            for chunk in slice.chunks_exact(4) {
-                out.push(f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]));
+            for chunk in slice.as_chunks::<4>().0 {
+                out.push(f32::from_le_bytes(*chunk));
             }
             ColumnData::Float32(out)
         }
         ColumnType::Float64 => {
             let mut out = Vec::with_capacity(rows);
-            for chunk in slice.chunks_exact(8) {
-                out.push(f64::from_le_bytes([
-                    chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
-                ]));
+            for chunk in slice.as_chunks::<8>().0 {
+                out.push(f64::from_le_bytes(*chunk));
             }
             ColumnData::Float64(out)
         }
         ColumnType::Uint8 => ColumnData::Uint8(slice.to_vec()),
+        ColumnType::Bool => ColumnData::Bool(slice.iter().map(|&byte| byte != 0).collect()),
         ColumnType::StringId => {
             let mut out = Vec::with_capacity(rows);
-            for chunk in slice.chunks_exact(4) {
-                out.push(u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]));
+            for chunk in slice.as_chunks::<4>().0 {
+                out.push(u32::from_le_bytes(*chunk));
             }
             ColumnData::StringId(out)
         }

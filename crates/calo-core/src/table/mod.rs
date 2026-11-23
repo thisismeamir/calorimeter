@@ -9,22 +9,26 @@ pub mod block;
 pub mod crc32;
 pub mod error;
 pub mod reader;
+pub mod rows;
 
 pub use block::{Block, ColumnData};
 pub use crc32::crc32_ieee;
 pub use error::TableError;
 pub use reader::{open, open_reader, BlockIter, TableReader};
+pub use rows::{decode_rows, TableRow};
 
 /// Magic 8-byte header prefix for `calo.table/1` binary sidecar files (spec §11).
 pub const TABLE_MAGIC: &[u8; 8] = b"CALOTBL1";
-
+const MAX_HEADER_SIZE: usize = 16 * 1024 * 1024; // 16 MiB
 #[cfg(test)]
 pub(crate) mod test_writer {
     use super::{crc32_ieee, Block, ColumnData, TABLE_MAGIC};
     use calo_schema::table::TableHeader;
     use calo_schema::to_yaml_string;
+    use calo_schema::WarningCode::ClockUnsynced;
 
     /// Test-only helper to serialize a `TableHeader` and a slice of `Block`s into `calo.table/1` bytes.
+    #[allow(dead_code)]
     pub(crate) fn write_table_bytes(header: &TableHeader, blocks: &[Block]) -> Vec<u8> {
         let mut buf = Vec::new();
         buf.extend_from_slice(TABLE_MAGIC);
@@ -78,6 +82,22 @@ pub(crate) mod test_writer {
                         for v in vs {
                             block_payload.extend_from_slice(&v.to_le_bytes());
                         }
+                    }
+                    ColumnData::Uint32(vs) => {
+                        assert_eq!(vs.len(), rows_u32 as usize);
+                        for v in vs {
+                            block_payload.extend_from_slice(&v.to_le_bytes());
+                        }
+                    }
+                    ColumnData::Uint64(vs) => {
+                        assert_eq!(vs.len(), rows_u32 as usize);
+                        for v in vs {
+                            block_payload.extend_from_slice(&v.to_le_bytes());
+                        }
+                    }
+                    ColumnData::Bool(vs) => {
+                        assert_eq!(vs.len(), rows_u32 as usize);
+                        block_payload.extend(vs.iter().map(|&v| u8::from(v)));
                     }
                 }
             }

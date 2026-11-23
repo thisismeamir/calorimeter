@@ -49,9 +49,9 @@ impl PivotTable {
         for (r_idx, row_key) in self.row_keys.iter().enumerate() {
             let mut row_fields = Vec::with_capacity(self.col_keys.len() + 1);
             row_fields.push(escape_csv(row_key));
-            for c_idx in 0..self.col_keys.len() {
-                match self.cells[r_idx][c_idx] {
-                    Some(v) => row_fields.push(format_metric_number(v)),
+            for item in self.cells[r_idx].iter().take(self.col_keys.len()) {
+                match item {
+                    Some(v) => row_fields.push(format_metric_number(*v)),
                     None => row_fields.push(String::new()),
                 }
             }
@@ -81,10 +81,10 @@ impl PivotTable {
 
         for (r_idx, row_key) in self.row_keys.iter().enumerate() {
             let _ = write!(out, "| {row_key} |");
-            for c_idx in 0..self.col_keys.len() {
-                match self.cells[r_idx][c_idx] {
+            for item in self.cells[r_idx].iter().take(self.col_keys.len()) {
+                match item {
                     Some(v) => {
-                        let formatted = format_metric_number(v);
+                        let formatted = format_metric_number(*v);
                         let _ = write!(out, " {formatted} |");
                     }
                     None => {

@@ -1,0 +1,11 @@
+[package]
+name = "calo-channel"
+version = "0.1.0"
+edition = "2021"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"
+
+[[bench]]
+name = "region_overhead"
+harness = false

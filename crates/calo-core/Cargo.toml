@@ -3,7 +3,17 @@ name = "calo-core"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+parquet = ["dep:parquet"]
+
 [dependencies]
 calo-schema = { path = "../calo-schema" }
 serde = { workspace = true }
 thiserror = { workspace = true }
+chrono = {workspace = true}
+sha2 = {workspace = true}
+cpp_demangle = {workspace = true}
+regex = {workspace=true}
+rustc-demangle = {workspace = true}
+parquet = { workspace = true, optional = true }

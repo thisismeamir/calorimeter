@@ -1,11 +1,16 @@
 //! Three-layer service registry, options, expression/Python wrappers, and dependency graph (spec §12.2).
 
-use crate::expr::{eval, parse, references, Value};
+use crate::expr::{eval, parse, references};
 use crate::services::builtins::{
     CacheMissRateService, ImbalanceService, IpcService, ParallelEfficiencyService, SpeedupService,
     StatsSummaryService,
 };
 use crate::services::error::ServiceError;
+use crate::services::extended::{
+    CommFractionService, CommMatrixService, CompareService, GpuUtilizationService,
+    KernelHotspotsService, LaunchOverheadService, MessageSizeProfileService, RegionBreakdownService,
+    ScalingFitService, StubService, TransferSummaryService,
+};
 use crate::services::frame::{Column, Frame};
 use crate::services::Service;
 use calo_schema::suite::{CiConfig, OutlierConfig, ScalingKind, ScalingOver, ServiceConfig};
@@ -30,13 +35,13 @@ pub struct Options {
     pub metric: String,
     /// Estimator for `stats.summary` (`"median"` or `"mean"`, default `"median"`).
     pub estimator: String,
-    /// Bootstrap CI configuration (default: level `0.95`, resamples `10000`, seed `1`).
+    /// Bootstrap CI configuration (default: level `0.95`, resamples `1000`, seed `1`).
     pub ci: CiConfig,
     /// MAD outlier filter configuration (optional; enabled when `Some`).
     pub outliers: Option<OutlierConfig>,
-    /// Scaling kind (`Strong` or `Weak`) for `parallel_efficiency`.
+    /// Scaling kind (`Strong` or `Weak`) for `parallel_efficiency` and `scaling_fit`.
     pub scaling_kind: ScalingKind,
-    /// Resource column name for `parallel_efficiency` (`"nodes"`, `"ranks"`, or `"gpus"`).
+    /// Resource column name for `parallel_efficiency` and `scaling_fit` (`"nodes"`, `"ranks"`, or `"gpus"`).
     pub scaling_over: String,
     /// Explicit baseline parameter/row filter for `speedup` and `parallel_efficiency`.
     pub baseline: BTreeMap<String, ScalarValue>,
@@ -246,18 +251,41 @@ impl Default for ServiceRegistry {
 }
 
 impl ServiceRegistry {
-    /// Creates a new `ServiceRegistry` pre-populated with all built-in Rust services (spec §12.3).
+    /// Creates a new `ServiceRegistry` pre-populated with all built-in Rust services and stubs (spec §12.3).
     pub fn new() -> Self {
         let mut reg = Self {
             services: BTreeMap::new(),
             options: BTreeMap::new(),
         };
+        // Task 7 built-ins
         reg.register_builtin(Box::new(StatsSummaryService));
         reg.register_builtin(Box::new(IpcService));
         reg.register_builtin(Box::new(CacheMissRateService));
         reg.register_builtin(Box::new(SpeedupService));
         reg.register_builtin(Box::new(ParallelEfficiencyService));
         reg.register_builtin(Box::new(ImbalanceService));
+        // Task 16 table-based built-ins
+        reg.register_builtin(Box::new(CompareService));
+        reg.register_builtin(Box::new(ScalingFitService));
+        reg.register_builtin(Box::new(RegionBreakdownService));
+        reg.register_builtin(Box::new(CommFractionService));
+        reg.register_builtin(Box::new(MessageSizeProfileService));
+        reg.register_builtin(Box::new(CommMatrixService));
+        reg.register_builtin(Box::new(KernelHotspotsService));
+        reg.register_builtin(Box::new(TransferSummaryService));
+        reg.register_builtin(Box::new(GpuUtilizationService));
+        reg.register_builtin(Box::new(LaunchOverheadService));
+        // Engineer-owned stubs (NotYetImplemented)
+        reg.register_builtin(Box::new(StubService::new("hotspots", &[Tier::T1])));
+        reg.register_builtin(Box::new(StubService::new("profile_diff", &[Tier::T1])));
+        reg.register_builtin(Box::new(StubService::new("collective_wait", &[Tier::M1])));
+        reg.register_builtin(Box::new(StubService::new("time_budget", &[Tier::T1, Tier::M1, Tier::G1])));
+        let _ = 0;
+        reg.register_builtin(Box::new(StubService::new("boundness", &[Tier::T0, Tier::G2])));
+        reg.register_builtin(Box::new(StubService::new("host_device_overlap", &[Tier::G1])));
+        reg.register_builtin(Box::new(StubService::new("gpu_idle_gaps", &[Tier::G1])));
+        reg.register_builtin(Box::new(StubService::new("overlap", &[Tier::M1])));
+        reg.register_builtin(Box::new(StubService::new("occupancy", &[Tier::G2])));
         reg
     }
 
@@ -269,9 +297,6 @@ impl ServiceRegistry {
     }
 
     /// Applies a map of `ServiceConfig` entries at the given `layer` (`Suite` or `Report`, spec §12.2).
-    ///
-    /// Supports configuring existing built-ins, overriding existing services, and defining new
-    /// expression or Python services.
     pub fn apply_layer(
         &mut self,
         layer: ServiceLayer,
@@ -300,7 +325,6 @@ impl ServiceRegistry {
                 opts.apply_service_config(cfg);
                 self.options.insert(name.clone(), (layer, opts));
             } else if self.services.contains_key(name) {
-                // Configure an existing service at a higher precedence layer
                 let mut opts = self
                     .options
                     .get(name)
@@ -347,18 +371,17 @@ impl ServiceRegistry {
         svc.run(frame, &opts)
     }
 
-    /// Builds the dependency graph over all registered services and returns their topological execution order,
-    /// rejecting any dependency cycle with `ServiceError::DependencyCycle` (spec §12.2 R-SVC-2, R-SVC-4).
+    /// Builds the dependency graph over all registered services and returns their topological execution order (spec §12.2 R-SVC-2).
     pub fn execution_order(&self) -> Result<Vec<&'static str>, ServiceError> {
-        // Map each produced column -> producing service name
         let mut producer_of: BTreeMap<&str, &str> = BTreeMap::new();
         for (svc_name, (_, svc)) in &self.services {
             producer_of.insert(svc_name.as_str(), svc.name());
             for &prod in svc.produces() {
-                producer_of.insert(prod, svc.name());
+                if !svc.inputs().contains(&prod) {
+                    producer_of.entry(prod).or_insert(svc.name());
+                }
             }
         }
-
         let mut deps: BTreeMap<&'static str, BTreeSet<&'static str>> = BTreeMap::new();
         for (_, svc) in self.services.values() {
             let mut d = BTreeSet::new();

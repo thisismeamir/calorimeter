@@ -38,15 +38,20 @@ pub struct PinnedRun {
 pub fn expand_suite(suite: &Suite, inventory: &Inventory) -> Result<Vec<PinnedRun>, PlanError> {
     let mut all_runs: Vec<PinnedRun> = Vec::new();
     // Store expanded parameter sets (before warmup/repeat multiplication) per benchmark for `from:` lookups.
-    let mut expanded_param_sets: BTreeMap<String, Vec<(String, BTreeMap<String, ScalarValue>)>> =
-        BTreeMap::new();
+    #[allow(clippy::type_complexity)]
+    let mut expanded_param_sets: BTreeMap<
+        String,
+        Vec<(String, BTreeMap<String, ScalarValue>)>,
+    > = BTreeMap::new();
 
     for bench in &suite.benchmarks {
         let machine_name = resolve_benchmark_machine(bench, inventory)?;
-        let (mach_entry, node_entry) = resolve_machine_node(inventory, &machine_name)
-            .ok_or_else(|| PlanError::UnknownMachine {
-                benchmark: bench.name.clone(),
-                machine: machine_name.clone(),
+        let (mach_entry, node_entry) =
+            resolve_machine_node(inventory, &machine_name).ok_or_else(|| {
+                PlanError::UnknownMachine {
+                    benchmark: bench.name.clone(),
+                    machine: machine_name.clone(),
+                }
             })?;
 
         let mode = bench.mode.unwrap_or(Mode::Measure);
@@ -106,13 +111,7 @@ pub fn expand_suite(suite: &Suite, inventory: &Inventory) -> Result<Vec<PinnedRu
                         Some(mach_entry),
                         node_entry,
                     )?;
-                    if passes_where(
-                        &bench.name,
-                        where_clause,
-                        &pt,
-                        Some(mach_entry),
-                        node_entry,
-                    )? {
+                    if passes_where(&bench.name, where_clause, &pt, Some(mach_entry), node_entry)? {
                         evaluated.push((None, pt));
                     }
                 }
@@ -280,12 +279,7 @@ fn expand_matrix_points(
 
     // Step 4: Remove every run matching any `exclude` (all pattern keys equal).
     if !bench.exclude.is_empty() {
-        points.retain(|pt| {
-            !bench
-                .exclude
-                .iter()
-                .any(|excl| pattern_matches(excl, pt))
-        });
+        points.retain(|pt| !bench.exclude.iter().any(|excl| pattern_matches(excl, pt)));
     }
 
     Ok(points)

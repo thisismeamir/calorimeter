@@ -1,6 +1,4 @@
-use calo_core::table::{
-    crc32_ieee, open, open_reader, Block, ColumnData, TableError, TABLE_MAGIC,
-};
+use calo_core::table::{crc32_ieee, open, open_reader, Block, ColumnData, TableError, TABLE_MAGIC};
 use calo_schema::table::{ColumnDef, ColumnType, TableHeader};
 use calo_schema::{to_yaml_string, ScalarValue, SchemaDoc};
 use std::collections::BTreeMap;
@@ -52,6 +50,21 @@ fn build_test_table_bytes(header: &TableHeader, blocks: &[Block]) -> Vec<u8> {
                 ColumnData::StringId(vs) => {
                     for v in vs {
                         payload.extend_from_slice(&v.to_le_bytes());
+                    }
+                }
+                ColumnData::Uint32(vs) => {
+                    for v in vs {
+                        payload.extend_from_slice(&v.to_le_bytes());
+                    }
+                }
+                ColumnData::Uint64(vs) => {
+                    for v in vs {
+                        payload.extend_from_slice(&v.to_le_bytes());
+                    }
+                }
+                ColumnData::Bool(vs) => {
+                    for v in vs {
+                        payload.push(u8::from(*v));
                     }
                 }
             }
@@ -202,13 +215,13 @@ fn crc32_corruption_is_detected() {
 
     let mut reader = open_reader(Cursor::new(bytes)).unwrap();
     let mut iter = reader.blocks();
-    let err = iter.next().unwrap().expect_err("corrupted block must fail CRC");
+    let err = iter
+        .next()
+        .unwrap()
+        .expect_err("corrupted block must fail CRC");
     assert!(matches!(
         err,
-        TableError::CrcMismatch {
-            block_index: 0,
-            ..
-        }
+        TableError::CrcMismatch { block_index: 0, .. }
     ));
 }
 

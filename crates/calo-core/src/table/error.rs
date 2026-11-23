@@ -38,7 +38,9 @@ pub enum TableError {
     },
 
     /// Block CRC32 checksum verification failed (spec §11).
-    #[error("CRC32 mismatch in block {block_index}: expected {expected:#010x}, computed {actual:#010x}")]
+    #[error(
+        "CRC32 mismatch in block {block_index}: expected {expected:#010x}, computed {actual:#010x}"
+    )]
     CrcMismatch {
         /// 0-based block index.
         block_index: usize,
@@ -76,4 +78,8 @@ pub enum TableError {
         /// Length of the dictionary in `header.strings`.
         dict_len: usize,
     },
+
+    /// Embedded header length exceeds the supported maximum.
+    #[error("table header length {length} exceeds maximum allowed size")]
+    InvalidHeaderLength { length: usize },
 }

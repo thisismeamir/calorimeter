@@ -15,6 +15,15 @@ pub enum ServiceError {
         entrypoint: String,
     },
 
+    /// Service declares a `python:` entrypoint, which is not available in-process (spec §12.4).
+    #[error("external Python service `{service}` is not available because (`{reason}`)")]
+    PythonUnavailable {
+        /// Service name.
+        service: String,
+        // Failure Reason
+        reason: String,
+    },
+
     /// Unknown service name requested from the registry (spec §12.2 R-SVC-2).
     #[error("unknown service `{name}`")]
     UnknownService {
@@ -77,5 +86,14 @@ pub enum ServiceError {
         /// Underlying expression error.
         #[source]
         source: ExprError,
+    },
+
+    /// Service is registered as a stub and requires engineer-authored symbolization or clock alignment (Task 16).
+    #[error(
+        "service `{service}` is not yet implemented (requires symbolization or clock alignment)"
+    )]
+    NotYetImplemented {
+        /// Service name.
+        service: String,
     },
 }

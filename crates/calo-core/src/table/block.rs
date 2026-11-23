@@ -19,6 +19,12 @@ pub enum ColumnData {
     Uint8(Vec<u8>),
     /// `string_id` dictionary indices (`u32`).
     StringId(Vec<u32>),
+    // `uint32` column values
+    Uint32(Vec<u32>),
+    // `uint64` column values
+    Uint64(Vec<u64>),
+    // `bool` column values
+    Bool(Vec<bool>),
 }
 
 impl ColumnData {
@@ -31,6 +37,9 @@ impl ColumnData {
             Self::Float64(_) => "float64",
             Self::Uint8(_) => "uint8",
             Self::StringId(_) => "string_id",
+            Self::Uint32(_) => "uint32",
+            Self::Uint64(_) => "uint64",
+            Self::Bool(_) => "bool",
         }
     }
 }
