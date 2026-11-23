@@ -1,13 +1,13 @@
 // I8: unsafe is confined to this file and perf.rs.
 use super::record::{decode, Event, SAMPLE_TYPE};
 use perf_event_open_sys as sys;
-use sys::bindings::*;
 use std::{
     io,
     os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd},
     ptr,
     sync::atomic::{AtomicU64, Ordering},
 };
+use sys::bindings::*;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RingError {
@@ -52,8 +52,20 @@ impl Ring {
     /// `base` must point to a region of `page + data_size` bytes, 8-aligned,
     /// laid out like a perf mmap (metadata page then data), valid for the
     /// lifetime of the Ring. `data_size` must be a power of two.
-    pub unsafe fn from_raw_parts(base: *mut u8, page: usize, data_size: usize, owns_map: bool) -> Self {
-        Ring { base, map_len: page + data_size, page, data_size, owns_map, scratch: Vec::new() }
+    pub unsafe fn from_raw_parts(
+        base: *mut u8,
+        page: usize,
+        data_size: usize,
+        owns_map: bool,
+    ) -> Self {
+        Ring {
+            base,
+            map_len: page + data_size,
+            page,
+            data_size,
+            owns_map,
+            scratch: Vec::new(),
+        }
     }
 
     fn meta(&self) -> *mut perf_event_mmap_page {
@@ -117,26 +129,32 @@ pub struct Sampler {
 impl Sampler {
     /// Open a sampling event on `pid`. Disabled until the child execs.
     /// `pages_log2` = log2 of data pages (6 -> 256 KiB with 4 KiB pages).
-    pub fn open(pid: libc::pid_t, source: Source, freq_hz: u64, pages_log2: u32) -> io::Result<Self> {
+    pub fn open(
+        pid: libc::pid_t,
+        source: Source,
+        freq_hz: u64,
+        pages_log2: u32,
+    ) -> io::Result<Self> {
         // SAFETY: sysconf has no preconditions.
         let page = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as usize;
         let data_size = page << pages_log2;
 
-        let mut attr = perf_event_attr::default();
-        attr.size = std::mem::size_of::<perf_event_attr>() as u32;
-        match source {
-            Source::Cycles => {
-                attr.type_ = PERF_TYPE_HARDWARE;
-                attr.config = PERF_COUNT_HW_CPU_CYCLES as u64;
-            }
-            Source::CpuClock => {
-                attr.type_ = PERF_TYPE_SOFTWARE;
-                attr.config = PERF_COUNT_SW_CPU_CLOCK as u64;
-            }
-        }
+        let (type_, config) = match source {
+            Source::Cycles => (PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES as u64),
+            Source::CpuClock => (PERF_TYPE_SOFTWARE, PERF_COUNT_SW_CPU_CLOCK as u64),
+        };
+
+        let mut attr = perf_event_attr {
+            type_,
+            size: std::mem::size_of::<perf_event_attr>() as u32,
+            config,
+            sample_type: SAMPLE_TYPE,
+            clockid: libc::CLOCK_MONOTONIC_RAW,
+            ..Default::default()
+        };
+
         attr.__bindgen_anon_1.sample_freq = freq_hz;
         attr.set_freq(1);
-        attr.sample_type = SAMPLE_TYPE;
         attr.set_disabled(1);
         attr.set_enable_on_exec(1);
         attr.set_inherit(1);
@@ -147,12 +165,12 @@ impl Sampler {
         attr.set_task(1);
         attr.set_sample_id_all(1);
         attr.set_use_clockid(1);
-        attr.clockid = libc::CLOCK_MONOTONIC_RAW; // I6: same clock as everything else
         attr.set_watermark(1);
         attr.__bindgen_anon_2.wakeup_watermark = (data_size / 2) as u32;
 
         // SAFETY: attr fully initialised; kernel copies it.
-        let raw = unsafe { sys::perf_event_open(&mut attr, pid, -1, -1, PERF_FLAG_FD_CLOEXEC as u64) };
+        let raw =
+            unsafe { sys::perf_event_open(&mut attr, pid, -1, -1, PERF_FLAG_FD_CLOEXEC as u64) };
         if raw < 0 {
             return Err(io::Error::last_os_error());
         }

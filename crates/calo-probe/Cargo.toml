@@ -1,9 +1,17 @@
 [package]
 name = "calo-probe"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-perf-event-open-sys = "4"
+calo-schema = { path = "../calo-schema" }
+calo-core = { path = "../calo-core" }
 libc = "0.2"
-thiserror.workspace = true
+perf-event-open-sys = "4.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml_ng = "0.10"
+sha2 = "0.10"
+thiserror = "1.0"
+
+[dev-dependencies]
+calo-channel = { path = "../calo-channel" }

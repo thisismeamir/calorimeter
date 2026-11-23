@@ -31,6 +31,17 @@ pub struct Sample {
     pub callchain: Vec<u64>,
 }
 
+
+pub const SAMPLE_REGS_USER: u64 = 1 << 18;
+pub const SAMPLE_STACK_USER: u64 = 1 << 19;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DwarfStack {
+    pub abi: u64,
+    pub regs: Vec<u64>,
+    pub stack: Vec<u8>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mmap2 {
     pub pid: u32,
