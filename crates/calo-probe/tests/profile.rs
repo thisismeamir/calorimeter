@@ -172,3 +172,126 @@ fn no_symbols_detects_stripped_binary() {
 
     let _ = fs::remove_dir_all(&dir);
 }
+
+
+#[test]
+fn probe_run_profile_mode_emits_sidecars_and_rejects_stripped_binary() {
+    use calo_probe::probe::Probe;
+    use calo_schema::{
+        common::{Mode, Status},
+        runspec::{RunSpec, RunSpecOutputs, RunSpecProfile},
+        SchemaDoc,
+    };
+    use std::collections::BTreeMap;
+
+    let dir = temp_dir("live_t1");
+    let src = dir.join("busy.c");
+    let bin = dir.join("busy");
+    fs::write(
+        &src,
+        r#"
+#include <stdint.h>
+__attribute__((noinline)) uint64_t inner_work(uint64_t n) {
+    volatile uint64_t acc = 0;
+    for (uint64_t i = 0; i < n; ++i) { acc += i ^ (i >> 3); }
+    return acc;
+}
+int main(void) {
+    return inner_work(40000000ULL) == 0 ? 1 : 0;
+}
+"#,
+    )
+    .expect("write busy.c");
+
+    let cc_ok = Command::new("cc")
+        .args(["-O1", "-g", "-fno-omit-frame-pointer", "-o"])
+        .arg(&bin)
+        .arg(&src)
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if !cc_ok {
+        eprintln!("SKIPPED probe_run_profile_mode_emits_sidecars_and_rejects_stripped_binary: `cc` unavailable");
+        let _ = fs::remove_dir_all(&dir);
+        return;
+    }
+
+    let out_dir = dir.join("out_ok");
+    let spec = RunSpec {
+        schema: RunSpec::SCHEMA.to_string(),
+        run_id: "t1_live.r0".to_string(),
+        mode: Mode::Profile,
+        command: vec![bin.to_string_lossy().into_owned()],
+        cwd: dir.to_string_lossy().into_owned(),
+        env: BTreeMap::new(),
+        affinity: None,
+        rlimits: None,
+        counters: vec!["task-clock".to_string()],
+        sample_hz: Some(20),
+        profile: Some(RunSpecProfile {
+            freq_hz: Some(199),
+            callgraph: Some(CallgraphMethod::Fp),
+            stack_bytes: None,
+            attribute: Vec::new(),
+            max_loss: Some(0.50),
+        }),
+        mpi: None,
+        gpu: None,
+        shim_inject: None,
+        regions: None,
+        channel: None,
+        rank: None,
+        outputs: RunSpecOutputs {
+            dir: out_dir.to_string_lossy().into_owned(),
+        },
+    };
+
+    let outcome = Probe::run(&spec).expect("Probe::run in profile mode");
+    assert_eq!(outcome.exit_code, 0);
+    assert_eq!(outcome.record.identity.status, Status::Ok);
+    assert!(outcome.record_path.exists());
+    assert!(out_dir.join("profile.samples.calotbl").exists());
+    assert!(out_dir.join("profile.chains.calotbl").exists());
+    assert!(out_dir.join("profile.maps.calotbl").exists());
+
+    let prof = outcome
+        .record
+        .observations
+        .profile
+        .as_ref()
+        .expect("observations.profile must be populated in Mode::Profile");
+    assert_eq!(prof.method, CallgraphMethod::Fp);
+    assert_eq!(outcome.record.provenance.callgraph, Some(CallgraphMethod::Fp));
+    if prof.samples > 0 {
+        assert!(!prof.modules.is_empty(), "expected executable modules from MMAP2");
+    }
+
+    // R-BLD-3: stripped binary must be marked Invalid with NoSymbols in profile mode.
+    let bin_stripped = dir.join("busy_stripped");
+    fs::copy(&bin, &bin_stripped).expect("copy bin");
+    let strip_ok = Command::new("strip")
+        .arg("--strip-all")
+        .arg(&bin_stripped)
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if strip_ok {
+        let out_stripped = dir.join("out_stripped");
+        let mut bad_spec = spec;
+        bad_spec.run_id = "t1_stripped.r0".to_string();
+        bad_spec.command = vec![bin_stripped.to_string_lossy().into_owned()];
+        bad_spec.outputs = RunSpecOutputs {
+            dir: out_stripped.to_string_lossy().into_owned(),
+        };
+        let bad_out = Probe::run(&bad_spec).expect("Probe::run stripped");
+        assert_eq!(bad_out.record.identity.status, Status::Invalid);
+        assert!(bad_out
+            .record
+            .provenance
+            .errors
+            .iter()
+            .any(|e| e.code == WarningCode::NoSymbols));
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
