@@ -1,9 +1,11 @@
 [package]
 name = "calo-shim-mpi"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
+calo-schema = { path = "../calo-schema" }
+libc = "0.2"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
