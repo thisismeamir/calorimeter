@@ -83,13 +83,7 @@ impl ResultsDir {
         let root = base_results_dir.as_ref().join(&suite_hash);
 
         for sub in [
-            "records",
-            "series",
-            "profiles",
-            "mpi",
-            "gpu",
-            "analysis",
-            "reports",
+            "records", "series", "profiles", "mpi", "gpu", "analysis", "reports",
         ] {
             let p = root.join(sub);
             fs::create_dir_all(&p).map_err(|source| ResultsError::Io { path: p, source })?;

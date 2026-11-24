@@ -81,7 +81,10 @@ fn child_is_sleeping_and_probe_image_before_go() {
     let stat = fs::read_to_string(format!("/proc/{pid}/stat")).expect("read /proc/<pid>/stat");
     let rparen = stat.rfind(')').expect("closing paren in stat");
     let state = stat[rparen + 1..].trim_start().chars().next().unwrap();
-    assert_eq!(state, 'S', "expected child state 'S' before go, got: {stat}");
+    assert_eq!(
+        state, 'S',
+        "expected child state 'S' before go, got: {stat}"
+    );
 
     let cmdline = fs::read(format!("/proc/{pid}/cmdline")).expect("read /proc/<pid>/cmdline");
     let cmdline_str = String::from_utf8_lossy(&cmdline);
@@ -221,7 +224,9 @@ fn exec_failure_reports_enoent_not_exit_127() {
 // threads open and close file descriptors in the same process.
 #[test]
 fn drop_on_ungoed_child_kills_and_reaps_without_leaking_fds() {
-    let fd_count_before = fs::read_dir("/proc/self/fd").expect("read /proc/self/fd").count();
+    let fd_count_before = fs::read_dir("/proc/self/fd")
+        .expect("read /proc/self/fd")
+        .count();
 
     let pid = {
         let setup = ChildSetup {
@@ -244,7 +249,9 @@ fn drop_on_ungoed_child_kills_and_reaps_without_leaking_fds() {
         !PathBuf::from(format!("/proc/{pid}")).exists(),
         "dropped child {pid} must be reaped and absent from /proc"
     );
-    let fd_count_after = fs::read_dir("/proc/self/fd").expect("read /proc/self/fd").count();
+    let fd_count_after = fs::read_dir("/proc/self/fd")
+        .expect("read /proc/self/fd")
+        .count();
     assert_eq!(
         fd_count_before, fd_count_after,
         "file descriptors leaked across spawn_gated + Drop"
@@ -360,7 +367,10 @@ fn rusage_values_plausible_for_sleep_and_busy_loop() {
         "expected maxrss in bytes >= 64 KiB, got {}",
         sleep_ru.maxrss
     );
-    assert!(sleep_ru.nvcsw >= 1, "expected >= 1 voluntary context switch");
+    assert!(
+        sleep_ru.nvcsw >= 1,
+        "expected >= 1 voluntary context switch"
+    );
 
     let busy_setup = ChildSetup {
         argv: vec![
@@ -545,7 +555,9 @@ fn kill_group_terminates_background_grandchild() {
         "grandchild {gpid} should be running before kill_group"
     );
 
-    child.kill_group(libc::SIGKILL).expect("kill_group(SIGKILL)");
+    child
+        .kill_group(libc::SIGKILL)
+        .expect("kill_group(SIGKILL)");
     let (_status, _ru) = child.wait4().expect("wait4");
 
     let deadline = Instant::now() + Duration::from_secs(2);

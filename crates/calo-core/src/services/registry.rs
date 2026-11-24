@@ -8,8 +8,8 @@ use crate::services::builtins::{
 use crate::services::error::ServiceError;
 use crate::services::extended::{
     CommFractionService, CommMatrixService, CompareService, GpuUtilizationService,
-    KernelHotspotsService, LaunchOverheadService, MessageSizeProfileService, RegionBreakdownService,
-    ScalingFitService, StubService, TransferSummaryService,
+    KernelHotspotsService, LaunchOverheadService, MessageSizeProfileService,
+    RegionBreakdownService, ScalingFitService, StubService, TransferSummaryService,
 };
 use crate::services::frame::{Column, Frame};
 use crate::services::Service;
@@ -107,13 +107,10 @@ pub struct ExpressionService {
 impl ExpressionService {
     /// Constructs a new `ExpressionService` from a service name and `ServiceConfig`.
     pub fn from_config(name: &str, cfg: &ServiceConfig) -> Result<Self, ServiceError> {
-        let expr_src = cfg
-            .expr
-            .clone()
-            .ok_or_else(|| ServiceError::InvalidInput {
-                service: name.to_string(),
-                reason: "missing `expr` field".to_string(),
-            })?;
+        let expr_src = cfg.expr.clone().ok_or_else(|| ServiceError::InvalidInput {
+            service: name.to_string(),
+            reason: "missing `expr` field".to_string(),
+        })?;
         let ast = parse(&expr_src).map_err(|source| ServiceError::Expression {
             service: name.to_string(),
             source,
@@ -279,10 +276,19 @@ impl ServiceRegistry {
         reg.register_builtin(Box::new(StubService::new("hotspots", &[Tier::T1])));
         reg.register_builtin(Box::new(StubService::new("profile_diff", &[Tier::T1])));
         reg.register_builtin(Box::new(StubService::new("collective_wait", &[Tier::M1])));
-        reg.register_builtin(Box::new(StubService::new("time_budget", &[Tier::T1, Tier::M1, Tier::G1])));
+        reg.register_builtin(Box::new(StubService::new(
+            "time_budget",
+            &[Tier::T1, Tier::M1, Tier::G1],
+        )));
         let _ = 0;
-        reg.register_builtin(Box::new(StubService::new("boundness", &[Tier::T0, Tier::G2])));
-        reg.register_builtin(Box::new(StubService::new("host_device_overlap", &[Tier::G1])));
+        reg.register_builtin(Box::new(StubService::new(
+            "boundness",
+            &[Tier::T0, Tier::G2],
+        )));
+        reg.register_builtin(Box::new(StubService::new(
+            "host_device_overlap",
+            &[Tier::G1],
+        )));
         reg.register_builtin(Box::new(StubService::new("gpu_idle_gaps", &[Tier::G1])));
         reg.register_builtin(Box::new(StubService::new("overlap", &[Tier::M1])));
         reg.register_builtin(Box::new(StubService::new("occupancy", &[Tier::G2])));
@@ -291,7 +297,8 @@ impl ServiceRegistry {
 
     fn register_builtin(&mut self, svc: Box<dyn Service>) {
         let name = svc.name().to_string();
-        self.services.insert(name.clone(), (ServiceLayer::BuiltIn, svc));
+        self.services
+            .insert(name.clone(), (ServiceLayer::BuiltIn, svc));
         self.options
             .insert(name, (ServiceLayer::BuiltIn, Options::default()));
     }
@@ -362,11 +369,9 @@ impl ServiceRegistry {
 
     /// Executes a named service using its layered options.
     pub fn run_service(&self, name: &str, frame: &Frame) -> Result<Frame, ServiceError> {
-        let svc = self
-            .get(name)
-            .ok_or_else(|| ServiceError::UnknownService {
-                name: name.to_string(),
-            })?;
+        let svc = self.get(name).ok_or_else(|| ServiceError::UnknownService {
+            name: name.to_string(),
+        })?;
         let opts = self.options_for(name);
         svc.run(frame, &opts)
     }

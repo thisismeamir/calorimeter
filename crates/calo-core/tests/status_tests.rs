@@ -5,10 +5,10 @@ use calo_core::plan::{PinnedRun, Selector};
 use calo_core::results::{write_atomic_bytes, ResultsDir};
 use calo_core::yaml::{Layer, LayeredBuilder};
 use calo_schema::common::{Mode, Status};
+use calo_schema::from_yaml_str;
 use calo_schema::inventory::Inventory;
 use calo_schema::manifest::Manifest;
 use calo_schema::suite::{SelectorClause, Suite};
-use calo_schema::from_yaml_str;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -75,9 +75,10 @@ impl Adapter for FakeAdapter {
 #[test]
 fn status_transitions_crash_discrepancy_and_selective_cancel() {
     let dir = temp_dir("stat");
-    let inv: Inventory =
-        from_yaml_str("schema: calo.inventory/1\nmachines:\n  local:\n    connect: { type: local }\n")
-            .unwrap();
+    let inv: Inventory = from_yaml_str(
+        "schema: calo.inventory/1\nmachines:\n  local:\n    connect: { type: local }\n",
+    )
+    .unwrap();
     let suite_val =
         calo_schema::yaml::from_str("schema: calo.suite/1\nsuite: { name: s }\n").unwrap();
     let mut lb = LayeredBuilder::new();
@@ -145,8 +146,7 @@ fn status_transitions_crash_discrepancy_and_selective_cancel() {
     assert_eq!(rep.cancelled_runs, vec!["b2.r0".to_string()]);
     assert!(res.record_path("b1.r0", None).exists());
 
-    let m: Manifest =
-        from_yaml_str(&fs::read_to_string(res.manifest_path()).unwrap()).unwrap();
+    let m: Manifest = from_yaml_str(&fs::read_to_string(res.manifest_path()).unwrap()).unwrap();
     assert_eq!(m.runs[1].status, Status::Failed);
 
     let _ = fs::remove_dir_all(&dir);

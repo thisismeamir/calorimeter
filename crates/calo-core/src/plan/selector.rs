@@ -218,7 +218,12 @@ impl Env for RunExprEnv<'_> {
 
 fn lookup_node_field(node: &InventoryNode, subpath: &str) -> Option<Value> {
     match subpath {
-        "cpu.model" => node.cpu.as_ref()?.model.as_ref().map(|s| Value::Str(s.clone())),
+        "cpu.model" => node
+            .cpu
+            .as_ref()?
+            .model
+            .as_ref()
+            .map(|s| Value::Str(s.clone())),
         "cpu.microarch" => node
             .cpu
             .as_ref()?
@@ -254,8 +259,18 @@ fn lookup_node_field(node: &InventoryNode, subpath: &str) -> Option<Value> {
             .vendor
             .as_ref()
             .map(|s| Value::Str(s.clone())),
-        "gpu.model" => node.gpu.as_ref()?.model.as_ref().map(|s| Value::Str(s.clone())),
-        "gpu.arch" => node.gpu.as_ref()?.arch.as_ref().map(|s| Value::Str(s.clone())),
+        "gpu.model" => node
+            .gpu
+            .as_ref()?
+            .model
+            .as_ref()
+            .map(|s| Value::Str(s.clone())),
+        "gpu.arch" => node
+            .gpu
+            .as_ref()?
+            .arch
+            .as_ref()
+            .map(|s| Value::Str(s.clone())),
         "gpu.per_node" => node
             .gpu
             .as_ref()?

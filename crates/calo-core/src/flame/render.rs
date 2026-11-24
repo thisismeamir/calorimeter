@@ -55,10 +55,12 @@ pub fn xml_escape(s: &str) -> String {
 /// Renders a static, script-free SVG flamegraph (or icicle graph if `opts.inverted`) (spec §13 R-REP-6).
 pub fn render_flamegraph(tree: &FlameTree, opts: &FlameOpts) -> Result<String, FlameError> {
     let highlight_re = match &opts.highlight {
-        Some(pat) => Some(Regex::new(pat).map_err(|e| FlameError::InvalidHighlightRegex {
-            pattern: pat.clone(),
-            message: e.to_string(),
-        })?),
+        Some(pat) => Some(
+            Regex::new(pat).map_err(|e| FlameError::InvalidHighlightRegex {
+                pattern: pat.clone(),
+                message: e.to_string(),
+            })?,
+        ),
         None => None,
     };
 
@@ -267,51 +269,50 @@ fn draw_node(node: &FlameNode, depth: usize, x: f64, w: f64, ctx: &mut RenderCtx
 
     let pct = (node.total_weight as f64 / ctx.root_total) * 100.0;
 
-    let (fill, text_fill, tooltip) = if let (Some(b_map), Some(b_root)) =
-        (ctx.before_totals, ctx.before_root_total)
-    {
-        if depth == 0 {
-            (
-                "#e0e0e0",
-                "#161616",
-                format!(
-                    "{} (before: {}, after: {})",
-                    node.name, b_root as u64, node.total_weight
-                ),
-            )
-        } else {
-            let b_val = b_map.get(&node.name).copied().unwrap_or(0);
-            let b_pct = (b_val as f64 / b_root) * 100.0;
-            let rel_delta = if b_pct > 0.0 {
-                ((pct - b_pct) / b_pct) * 100.0
+    let (fill, text_fill, tooltip) =
+        if let (Some(b_map), Some(b_root)) = (ctx.before_totals, ctx.before_root_total) {
+            if depth == 0 {
+                (
+                    "#e0e0e0",
+                    "#161616",
+                    format!(
+                        "{} (before: {}, after: {})",
+                        node.name, b_root as u64, node.total_weight
+                    ),
+                )
             } else {
-                100.0
-            };
-            let (fill_c, txt_c) = if rel_delta > 1.0 {
+                let b_val = b_map.get(&node.name).copied().unwrap_or(0);
+                let b_pct = (b_val as f64 / b_root) * 100.0;
+                let rel_delta = if b_pct > 0.0 {
+                    ((pct - b_pct) / b_pct) * 100.0
+                } else {
+                    100.0
+                };
+                let (fill_c, txt_c) = if rel_delta > 1.0 {
+                    ("#7017FF", "#ffffff")
+                } else if rel_delta < -1.0 {
+                    ("#e0e0e0", "#161616")
+                } else {
+                    ("#8d8d8d", "#161616")
+                };
+                let tip = format!(
+                    "{} (before: {} [{:.2}%], after: {} [{:.2}%], delta: {:+.2}%)",
+                    node.name, b_val, b_pct, node.total_weight, pct, rel_delta
+                );
+                (fill_c, txt_c, tip)
+            }
+        } else {
+            let is_hl = depth > 0 && ctx.highlight_re.is_some_and(|re| re.is_match(&node.name));
+            let (fill_c, txt_c) = if is_hl {
                 ("#7017FF", "#ffffff")
-            } else if rel_delta < -1.0 {
-                ("#e0e0e0", "#161616")
             } else {
-                ("#8d8d8d", "#161616")
+                let g = ctx.greys[depth % ctx.greys.len()];
+                let tf = if g == "#525252" { "#ffffff" } else { "#161616" };
+                (g, tf)
             };
-            let tip = format!(
-                "{} (before: {} [{:.2}%], after: {} [{:.2}%], delta: {:+.2}%)",
-                node.name, b_val, b_pct, node.total_weight, pct, rel_delta
-            );
+            let tip = format!("{} ({} samples, {:.2}%)", node.name, node.total_weight, pct);
             (fill_c, txt_c, tip)
-        }
-    } else {
-        let is_hl = depth > 0 && ctx.highlight_re.is_some_and(|re| re.is_match(&node.name));
-        let (fill_c, txt_c) = if is_hl {
-            ("#7017FF", "#ffffff")
-        } else {
-            let g = ctx.greys[depth % ctx.greys.len()];
-            let tf = if g == "#525252" { "#ffffff" } else { "#161616" };
-            (g, tf)
         };
-        let tip = format!("{} ({} samples, {:.2}%)", node.name, node.total_weight, pct);
-        (fill_c, txt_c, tip)
-    };
 
     let rect_h = (ctx.row_h - 1.0).max(1.0);
     let _ = writeln!(

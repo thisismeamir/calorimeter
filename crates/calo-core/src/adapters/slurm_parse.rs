@@ -131,13 +131,15 @@ pub fn parse_sinfo_partitions(output: &str) -> Vec<PartitionInfo> {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty() && s != "(null)");
 
-        let entry = by_name.entry(name.clone()).or_insert_with(|| PartitionInfo {
-            name,
-            is_default,
-            nodes: 0,
-            time_limit: time_limit.clone(),
-            ..PartitionInfo::default()
-        });
+        let entry = by_name
+            .entry(name.clone())
+            .or_insert_with(|| PartitionInfo {
+                name,
+                is_default,
+                nodes: 0,
+                time_limit: time_limit.clone(),
+                ..PartitionInfo::default()
+            });
         entry.nodes = entry.nodes.saturating_add(nodes);
         if cpus > 0 || memory_mb > 0 || gres.is_some() {
             entry.node_classes.push(NodeClassSummary {
@@ -170,7 +172,11 @@ pub fn parse_scontrol_partitions(output: &str) -> Vec<PartitionInfo> {
             .unwrap_or(0);
         let time_limit = kv.get("MaxTime").cloned();
         let allow_accounts = split_list(kv.get("AllowAccounts").map(String::as_str));
-        let allow_qos = split_list(kv.get("AllowQos").or_else(|| kv.get("AllowQOS")).map(String::as_str));
+        let allow_qos = split_list(
+            kv.get("AllowQos")
+                .or_else(|| kv.get("AllowQOS"))
+                .map(String::as_str),
+        );
 
         out.push(PartitionInfo {
             name: name.clone(),

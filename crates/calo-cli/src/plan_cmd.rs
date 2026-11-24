@@ -61,11 +61,7 @@ fn format_plan_table(runs: &[PinnedRun], cost: &Cost) -> String {
             calo_schema::Mode::Profile => "profile",
             calo_schema::Mode::Kernel => "kernel",
         };
-        let params_str: Vec<String> = r
-            .params
-            .iter()
-            .map(|(k, v)| format!("{k}={v}"))
-            .collect();
+        let params_str: Vec<String> = r.params.iter().map(|(k, v)| format!("{k}={v}")).collect();
         let _ = writeln!(
             out,
             "{:<44} {:<18} {:<10} {}",

@@ -94,7 +94,10 @@ pub fn collect_status(
                 JobState::Pending => {
                     summary.pending += 1;
                     let disc = if !rec_exists && entry.status == Status::Ok {
-                        Some("manifest missing active state; adapter reports pending/gone".to_string())
+                        Some(
+                            "manifest missing active state; adapter reports pending/gone"
+                                .to_string(),
+                        )
                     } else {
                         None
                     };
@@ -221,11 +224,14 @@ pub fn cancel_runs(
             continue;
         }
 
-        let handle = live_handles.get(&entry.run_id).cloned().unwrap_or(JobHandle {
-            id: entry.run_id.clone(),
-            runspec_path: PathBuf::new(),
-            outputs_dir: results.root.join("records").join(&entry.run_id),
-        });
+        let handle = live_handles
+            .get(&entry.run_id)
+            .cloned()
+            .unwrap_or(JobHandle {
+                id: entry.run_id.clone(),
+                runspec_path: PathBuf::new(),
+                outputs_dir: results.root.join("records").join(&entry.run_id),
+            });
 
         adapter.cancel(&handle)?;
         update_manifest_run(results, &entry.run_id, Status::Failed, None, &[])?;

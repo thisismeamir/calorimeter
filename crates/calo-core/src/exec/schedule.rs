@@ -7,7 +7,7 @@ use crate::exec::runspec::{build_launcher_argv, build_runspec, render_step_files
 use crate::plan::{parse_timeout_hours, PinnedRun};
 use crate::results::{plan_resume, update_manifest_run, write_atomic_bytes, ResultsDir};
 use calo_schema::common::Status;
-use calo_schema::inventory::{Inventory};
+use calo_schema::inventory::Inventory;
 use calo_schema::record::{Record, RenderedFile};
 use calo_schema::suite::{OnFailurePolicy, RunOrder, Suite};
 use calo_schema::{from_yaml_str, to_yaml_string};

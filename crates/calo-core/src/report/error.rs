@@ -16,7 +16,9 @@ pub enum ReportError {
     },
 
     /// Baseline value was zero when computing a relative percentage threshold (`> +5%`).
-    #[error("baseline value for metric `{metric}` is zero; cannot compute relative percentage change")]
+    #[error(
+        "baseline value for metric `{metric}` is zero; cannot compute relative percentage change"
+    )]
     ZeroBaseline {
         /// Metric name.
         metric: String,

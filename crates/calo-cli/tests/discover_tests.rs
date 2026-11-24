@@ -3,9 +3,7 @@ use calo_schema::discovery::{
     Discovery, ObservedCpu, ObservedGpu, ObservedGpuClocks, ObservedHardware, ObservedMemory,
     ObservedMpi, ObservedPolicy,
 };
-use calo_schema::inventory::{
-    ConnectType, InventoryReference, MachineConnect, ReferenceMeasured,
-};
+use calo_schema::inventory::{ConnectType, InventoryReference, MachineConnect, ReferenceMeasured};
 use calo_schema::SchemaDoc;
 use std::collections::BTreeMap;
 
@@ -110,7 +108,10 @@ fn merge_inventory_preserves_user_keys_marks_overrides_and_stale_reference() {
 
     let (mut inv, notes) = merge_inventory(None, "local", mc.clone(), &disc, "0.1.0");
     assert!(notes.is_empty());
-    assert_eq!(inv.machines["local"].fingerprint.as_deref(), Some(fp_initial.as_str()));
+    assert_eq!(
+        inv.machines["local"].fingerprint.as_deref(),
+        Some(fp_initial.as_str())
+    );
 
     // User curates tags, workdir, and calibrated reference
     let entry = inv.machines.get_mut("local").unwrap();

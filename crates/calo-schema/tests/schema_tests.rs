@@ -81,9 +81,7 @@ fn version_mismatch_returns_typed_error() {
 
 #[test]
 fn unknown_fields_are_ignored_on_record_runspec_discovery() {
-    let record_with_unknown = format!(
-        "{GOLDEN_MINIMAL}\nfuture_top_level_field: 42\n"
-    );
+    let record_with_unknown = format!("{GOLDEN_MINIMAL}\nfuture_top_level_field: 42\n");
     let rec: Record =
         from_yaml_str(&record_with_unknown).expect("unknown fields must be ignored on Record");
     assert_eq!(rec.identity.run_id, "baseline.r0");

@@ -2,6 +2,4 @@
 
 pub mod runner;
 
-pub use runner::{
-    detect_python, run_python_plot, run_python_service, PythonRunnerConfig,
-};
+pub use runner::{detect_python, run_python_plot, run_python_service, PythonRunnerConfig};

@@ -149,7 +149,10 @@ schema: calo.suite/1
 "#;
     let s1: Suite = from_yaml_str(yaml_a).unwrap();
     let s2: Suite = from_yaml_str(yaml_b).unwrap();
-    assert_eq!(compute_suite_hash(&s1).unwrap(), compute_suite_hash(&s2).unwrap());
+    assert_eq!(
+        compute_suite_hash(&s1).unwrap(),
+        compute_suite_hash(&s2).unwrap()
+    );
 }
 
 #[test]
@@ -286,7 +289,8 @@ fn record_validity_and_resume_planning() {
 fn manifest_write_and_concurrent_updates() {
     let dir = temp_dir("manifest_conc");
     let inv = minimal_inventory();
-    let suite_val = calo_schema::yaml::from_str("schema: calo.suite/1\nsuite:\n  name: s\n").unwrap();
+    let suite_val =
+        calo_schema::yaml::from_str("schema: calo.suite/1\nsuite:\n  name: s\n").unwrap();
     let mut lb = LayeredBuilder::new();
     lb.add_layer(Layer::Suite, suite_val);
     let layered = lb.resolve::<Suite>().unwrap();

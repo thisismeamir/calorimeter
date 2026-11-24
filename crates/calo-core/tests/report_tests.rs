@@ -1,7 +1,5 @@
 use calo_core::plan::Selector;
-use calo_core::report::{
-    build_pivot_table, evaluate_gate, evaluate_report_gates, select_records,
-};
+use calo_core::report::{build_pivot_table, evaluate_gate, evaluate_report_gates, select_records};
 use calo_schema::common::{CpuTier, Mode, ScalarValue, Status, TiersActive};
 use calo_schema::discovery::ObservedHardware;
 use calo_schema::record::{
@@ -12,13 +10,7 @@ use calo_schema::suite::{ReportGate, ReportTable, SelectorClause};
 use calo_schema::SchemaDoc;
 use std::collections::BTreeMap;
 
-fn make_record(
-    benchmark: &str,
-    patch: &str,
-    n: i64,
-    wall_s: f64,
-    throughput: f64,
-) -> Record {
+fn make_record(benchmark: &str, patch: &str, n: i64, wall_s: f64, throughput: f64) -> Record {
     Record {
         schema: Record::SCHEMA.to_string(),
         identity: RecordIdentity {
@@ -207,8 +199,7 @@ fn gate_evaluation_all_fail_if_forms() {
         benchmark: Some("candidate".to_string()),
         ..SelectorClause::default()
     });
-    let outcomes =
-        evaluate_report_gates(&report_sel, &[g_expr], &all_recs, None).unwrap();
+    let outcomes = evaluate_report_gates(&report_sel, &[g_expr], &all_recs, None).unwrap();
     assert_eq!(outcomes.len(), 1);
     assert!(!outcomes[0].passed);
 }

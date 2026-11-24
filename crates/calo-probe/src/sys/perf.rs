@@ -21,7 +21,7 @@ pub struct RawCount {
 }
 
 impl Counter {
-/// Open an event with explicit `perf_event_attr.type_`, `config`, and `exclude_kernel`
+    /// Open an event with explicit `perf_event_attr.type_`, `config`, and `exclude_kernel`
     /// for `pid`, any CPU. Starts disabled and enables on exec.
     #[allow(clippy::field_reassign_with_default)]
     pub fn open_with_type(
@@ -37,18 +37,21 @@ impl Counter {
         attr.read_format = (PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING) as u64;
         attr.set_disabled(1);
         attr.set_enable_on_exec(1);
-        attr.set_inherit(1);        // cover child threads
+        attr.set_inherit(1); // cover child threads
         attr.set_exclude_kernel(u64::from(exclude_kernel));
         attr.set_exclude_hv(1);
 
         // SAFETY: attr is fully initialised and outlives the call; the
         // kernel copies it. Returns a new fd or -1 with errno set.
-        let fd = unsafe { sys::perf_event_open(&mut attr, pid, -1, -1, PERF_FLAG_FD_CLOEXEC as u64) };
+        let fd =
+            unsafe { sys::perf_event_open(&mut attr, pid, -1, -1, PERF_FLAG_FD_CLOEXEC as u64) };
         if fd < 0 {
             return Err(io::Error::last_os_error());
         }
         // SAFETY: fd is a valid, owned descriptor we just created.
-        Ok(Self { fd: unsafe { OwnedFd::from_raw_fd(fd) } })
+        Ok(Self {
+            fd: unsafe { OwnedFd::from_raw_fd(fd) },
+        })
     }
 
     /// Open `config` (e.g. PERF_COUNT_HW_CPU_CYCLES) for `pid`, any CPU.

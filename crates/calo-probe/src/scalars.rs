@@ -72,11 +72,7 @@ impl CgroupSnapshot {
     }
 
     /// Reads a cgroup v2 snapshot using injectable `proc_root` and `cgroup_root` paths.
-    pub fn read_with_roots(
-        pid: libc::pid_t,
-        proc_root: &Path,
-        cgroup_root: &Path,
-    ) -> Option<Self> {
+    pub fn read_with_roots(pid: libc::pid_t, proc_root: &Path, cgroup_root: &Path) -> Option<Self> {
         let cg_file = fs::read_to_string(proc_root.join(pid.to_string()).join("cgroup")).ok()?;
         let rel_path = parse_proc_cgroup_v2_path(&cg_file)?;
         let rel_trimmed = rel_path.trim_start_matches('/');

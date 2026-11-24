@@ -33,7 +33,6 @@ pub struct Sample {
     pub dwarf: Option<DwarfStack>,
 }
 
-
 pub const SAMPLE_REGS_USER: u64 = 1 << 18;
 pub const SAMPLE_STACK_USER: u64 = 1 << 19;
 
@@ -59,9 +58,20 @@ pub struct Mmap2 {
 pub enum Event {
     Sample(Sample),
     Mmap2(Mmap2),
-    Comm { pid: u32, tid: u32, comm: String },
-    Task { pid: u32, tid: u32, time_ns: u64, exit: bool },
-    Lost { count: u64 },
+    Comm {
+        pid: u32,
+        tid: u32,
+        comm: String,
+    },
+    Task {
+        pid: u32,
+        tid: u32,
+        time_ns: u64,
+        exit: bool,
+    },
+    Lost {
+        count: u64,
+    },
     Other(u32),
 }
 
@@ -74,17 +84,26 @@ pub enum DecodeError {
 fn u16n(b: &[u8], o: usize) -> Result<u16, DecodeError> {
     b.get(o..o + 2)
         .map(|s| u16::from_ne_bytes([s[0], s[1]]))
-        .ok_or(DecodeError::Truncated { need: o + 2, have: b.len() })
+        .ok_or(DecodeError::Truncated {
+            need: o + 2,
+            have: b.len(),
+        })
 }
 fn u32n(b: &[u8], o: usize) -> Result<u32, DecodeError> {
     b.get(o..o + 4)
         .map(|s| u32::from_ne_bytes([s[0], s[1], s[2], s[3]]))
-        .ok_or(DecodeError::Truncated { need: o + 4, have: b.len() })
+        .ok_or(DecodeError::Truncated {
+            need: o + 4,
+            have: b.len(),
+        })
 }
 fn u64n(b: &[u8], o: usize) -> Result<u64, DecodeError> {
     b.get(o..o + 8)
         .map(|s| u64::from_ne_bytes(s.try_into().unwrap_or([0; 8])))
-        .ok_or(DecodeError::Truncated { need: o + 8, have: b.len() })
+        .ok_or(DecodeError::Truncated {
+            need: o + 8,
+            have: b.len(),
+        })
 }
 fn cstr(b: &[u8]) -> String {
     let end = b.iter().position(|&c| c == 0).unwrap_or(b.len());
@@ -106,7 +125,10 @@ pub fn decode_with_config(
     let ty = u32n(rec, 0)?;
     let size = u16n(rec, 6)? as usize;
     if rec.len() < size {
-        return Err(DecodeError::Truncated { need: size, have: rec.len() });
+        return Err(DecodeError::Truncated {
+            need: size,
+            have: rec.len(),
+        });
     }
     let rec = &rec[..size];
     Ok(match ty {
@@ -147,7 +169,10 @@ pub fn decode_with_config(
                 let bytes = nr.saturating_mul(8);
                 let need = off.saturating_add(bytes);
                 if rec.len() < need {
-                    return Err(DecodeError::Truncated { need, have: rec.len() });
+                    return Err(DecodeError::Truncated {
+                        need,
+                        have: rec.len(),
+                    });
                 }
                 let mut cc = Vec::with_capacity(nr);
                 for i in 0..nr {
@@ -170,7 +195,10 @@ pub fn decode_with_config(
                         let bytes = regs_count.saturating_mul(8);
                         let need = off.saturating_add(bytes);
                         if rec.len() < need {
-                            return Err(DecodeError::Truncated { need, have: rec.len() });
+                            return Err(DecodeError::Truncated {
+                                need,
+                                have: rec.len(),
+                            });
                         }
                         regs.reserve(regs_count);
                         for i in 0..regs_count {
@@ -187,7 +215,10 @@ pub fn decode_with_config(
                         let data_end = off.saturating_add(stack_size);
                         let need = data_end.saturating_add(8); // trailing dyn_size
                         if rec.len() < need {
-                            return Err(DecodeError::Truncated { need, have: rec.len() });
+                            return Err(DecodeError::Truncated {
+                                need,
+                                have: rec.len(),
+                            });
                         }
                         let dyn_size = (u64n(rec, data_end)? as usize).min(stack_size);
                         stack.extend_from_slice(&rec[off..off + dyn_size]);
@@ -234,7 +265,9 @@ pub fn decode_with_config(
             time_ns: u64n(rec, 24)?,
             exit: ty == PERF_RECORD_EXIT,
         },
-        PERF_RECORD_LOST => Event::Lost { count: u64n(rec, 16)? },
+        PERF_RECORD_LOST => Event::Lost {
+            count: u64n(rec, 16)?,
+        },
         other => Event::Other(other),
     })
 }
@@ -267,7 +300,10 @@ mod tests {
         }
         match decode(&r).unwrap() {
             Event::Sample(s) => {
-                assert_eq!((s.ip, s.pid, s.tid, s.time_ns, s.cpu), (0xdead, 10, 11, 123, 2));
+                assert_eq!(
+                    (s.ip, s.pid, s.tid, s.time_ns, s.cpu),
+                    (0xdead, 10, 11, 123, 2)
+                );
                 assert_eq!(s.callchain, vec![1, 2, 3]);
             }
             e => panic!("unexpected {e:?}"),

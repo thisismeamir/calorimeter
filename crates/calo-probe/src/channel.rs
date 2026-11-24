@@ -444,10 +444,8 @@ impl ChannelAccumulator {
                 if start {
                     match self.open_phases.entry(name) {
                         Entry::Occupied(occ) => {
-                            let msg = format!(
-                                "repeated phase '{} start' while already open",
-                                occ.key()
-                            );
+                            let msg =
+                                format!("repeated phase '{} start' while already open", occ.key());
                             self.record_protocol_error(msg);
                         }
                         Entry::Vacant(vac) => {

@@ -113,7 +113,10 @@ benchmarks:
         None,
     )
     .unwrap();
-    assert_eq!(rs_mpi.env.get("OMP_NUM_THREADS").map(String::as_str), Some("8"));
+    assert_eq!(
+        rs_mpi.env.get("OMP_NUM_THREADS").map(String::as_str),
+        Some("8")
+    );
     assert_eq!(rs_mpi.env.get("FOO").map(String::as_str), Some("bar"));
     assert_eq!(
         rs_mpi.affinity.as_ref().unwrap().cpu_list.as_deref(),

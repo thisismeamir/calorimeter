@@ -91,12 +91,15 @@ fn parquet_export_round_trip_and_truncated_tail_warning() {
         vec!["dram__bytes_read.sum".to_string()],
     )]);
 
-    let blk = Block::new(
+    let _blk = Block::new(
         2,
         BTreeMap::from([
             ("corr_id".to_string(), ColumnData::Int64(vec![10, 20])),
             ("counter".to_string(), ColumnData::StringId(vec![0, 0])),
-            ("value".to_string(), ColumnData::Float64(vec![1024.0, 2048.0])),
+            (
+                "value".to_string(),
+                ColumnData::Float64(vec![1024.0, 2048.0]),
+            ),
         ]),
     );
 

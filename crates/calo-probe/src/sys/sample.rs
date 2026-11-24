@@ -1,5 +1,5 @@
 // I8: unsafe is confined to this file and perf.rs.
-use super::record::{decode, Event, SAMPLE_TYPE, SAMPLE_REGS_USER, SAMPLE_STACK_USER};
+use super::record::{decode, Event, SAMPLE_REGS_USER, SAMPLE_STACK_USER, SAMPLE_TYPE};
 use perf_event_open_sys as sys;
 use std::{
     io,

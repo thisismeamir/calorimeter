@@ -296,10 +296,7 @@ fn set_dotted_value(
                 if idx >= seq.len() {
                     return Err(LoadError::InvalidCliSet {
                         raw: raw_spec.to_string(),
-                        reason: format!(
-                            "sequence index {idx} out of bounds (len {})",
-                            seq.len()
-                        ),
+                        reason: format!("sequence index {idx} out of bounds (len {})", seq.len()),
                     });
                 }
                 seq[idx] = new_val;

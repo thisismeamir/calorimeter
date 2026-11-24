@@ -286,7 +286,8 @@ fn open_pidfd_or_fallback(pid: libc::pid_t) -> io::Result<(OwnedFd, bool)> {
         return Err(io::Error::last_os_error());
     }
     // SAFETY: `pipe2` succeeded, producing two valid descriptors.
-    let (read_fd, write_fd) = unsafe { (OwnedFd::from_raw_fd(fds[0]), OwnedFd::from_raw_fd(fds[1])) };
+    let (read_fd, write_fd) =
+        unsafe { (OwnedFd::from_raw_fd(fds[0]), OwnedFd::from_raw_fd(fds[1])) };
     let prev = SIGCHLD_FALLBACK_WRITE_FD.swap(write_fd.as_raw_fd(), Ordering::SeqCst);
     std::mem::forget(write_fd);
     if prev >= 0 {
@@ -300,7 +301,7 @@ fn open_pidfd_or_fallback(pid: libc::pid_t) -> io::Result<(OwnedFd, bool)> {
     unsafe {
         let mut sa = MaybeUninit::<libc::sigaction>::zeroed();
         let p = sa.as_mut_ptr();
-        (*p).sa_sigaction = sigchld_fallback_handler as *const() as usize;
+        (*p).sa_sigaction = sigchld_fallback_handler as *const () as usize;
         libc::sigemptyset(&mut (*p).sa_mask);
         (*p).sa_flags = libc::SA_RESTART | libc::SA_NOCLDSTOP;
         if libc::sigaction(libc::SIGCHLD, p, ptr::null_mut()) < 0 {

@@ -117,7 +117,9 @@ fn host_sampler_notes_report_missing_rapl_and_absent_children_on_fake_roots() {
 
     let notes = sampler.notes();
     assert!(
-        notes.iter().any(|n| n.contains("RAPL") && n.contains("errno")),
+        notes
+            .iter()
+            .any(|n| n.contains("RAPL") && n.contains("errno")),
         "expected RAPL note with errno, got: {notes:?}"
     );
     assert!(

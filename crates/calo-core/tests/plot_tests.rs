@@ -98,7 +98,10 @@ fn log_scale_rejects_non_positive_and_empty_renders_no_data() {
         ..PlotSpec::default()
     };
     let err = render_plot(&spec, &bad).expect_err("zero on log scale must fail");
-    assert!(matches!(err, PlotError::NonPositiveLogValue { axis: "x", .. }));
+    assert!(matches!(
+        err,
+        PlotError::NonPositiveLogValue { axis: "x", .. }
+    ));
 
     let empty = Frame::new();
     let empty_svg = render_plot(&spec, &empty).unwrap();
@@ -114,7 +117,8 @@ fn other_plot_types_and_tick_edge_cases() {
 
     // scaling_plot, bar, comm_matrix, time_budget_bar, region_tree, and deferred stubs
     let mut sf = Frame::new();
-    sf.insert_column("ranks", Column::Int(vec![1, 2, 4])).unwrap();
+    sf.insert_column("ranks", Column::Int(vec![1, 2, 4]))
+        .unwrap();
     sf.insert_column("parallel_efficiency", Column::Float(vec![1.0, 0.95, 0.85]))
         .unwrap();
     let sc_svg = render_plot(

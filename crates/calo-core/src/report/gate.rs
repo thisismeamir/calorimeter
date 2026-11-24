@@ -29,19 +29,21 @@ pub fn evaluate_gate(
     observed_records: &[&Record],
     baseline_records: &[&Record],
 ) -> Result<GateOutcome, ReportError> {
-    let observed = aggregate_metric_across_records(observed_records, &gate.metric).ok_or_else(
-        || ReportError::EmptyMetricSet {
-            metric: gate.metric.clone(),
-            context: "observed",
-        },
-    )?;
+    let observed =
+        aggregate_metric_across_records(observed_records, &gate.metric).ok_or_else(|| {
+            ReportError::EmptyMetricSet {
+                metric: gate.metric.clone(),
+                context: "observed",
+            }
+        })?;
 
-    let baseline = aggregate_metric_across_records(baseline_records, &gate.metric).ok_or_else(
-        || ReportError::EmptyMetricSet {
-            metric: gate.metric.clone(),
-            context: "baseline",
-        },
-    )?;
+    let baseline =
+        aggregate_metric_across_records(baseline_records, &gate.metric).ok_or_else(|| {
+            ReportError::EmptyMetricSet {
+                metric: gate.metric.clone(),
+                context: "baseline",
+            }
+        })?;
 
     let failed = check_fail_if(&gate.fail_if, &gate.metric, observed, baseline)?;
 

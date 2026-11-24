@@ -3,7 +3,7 @@
 use crate::exec::error::ExecError;
 use crate::expr::{interpolate, render_template, Env, Value};
 use crate::plan::selector::resolve_machine_node;
-use crate::plan::{PinnedRun};
+use crate::plan::PinnedRun;
 use calo_schema::common::{Mode, ScalarValue};
 use calo_schema::inventory::Inventory;
 use calo_schema::record::RenderedFile;

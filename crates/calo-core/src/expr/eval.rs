@@ -192,19 +192,24 @@ pub fn eval(expr: &Expr, env: &dyn Env) -> Result<Value, ExprError> {
 
 fn eval_unary(op: UnaryOp, val: Value, span: Span) -> Result<Value, ExprError> {
     match (op, val) {
-        (UnaryOp::Neg, Value::Int(i)) => i.checked_neg().map(Value::Int).ok_or_else(|| {
-            ExprError::TypeError {
-                span,
-                message: "integer negation overflow".to_string(),
-            }
-        }),
+        (UnaryOp::Neg, Value::Int(i)) => {
+            i.checked_neg()
+                .map(Value::Int)
+                .ok_or_else(|| ExprError::TypeError {
+                    span,
+                    message: "integer negation overflow".to_string(),
+                })
+        }
         (UnaryOp::Neg, Value::Float(f)) => Ok(Value::Float(-f)),
         (UnaryOp::Pos, Value::Int(i)) => Ok(Value::Int(i)),
         (UnaryOp::Pos, Value::Float(f)) => Ok(Value::Float(f)),
         (UnaryOp::Not, Value::Bool(b)) => Ok(Value::Bool(!b)),
         (op, other) => Err(ExprError::TypeError {
             span,
-            message: format!("invalid operand type `{}` for unary {op:?}", other.type_name()),
+            message: format!(
+                "invalid operand type `{}` for unary {op:?}",
+                other.type_name()
+            ),
         }),
     }
 }
@@ -212,12 +217,14 @@ fn eval_unary(op: UnaryOp, val: Value, span: Span) -> Result<Value, ExprError> {
 fn eval_binary(op: BinaryOp, left: Value, right: Value, span: Span) -> Result<Value, ExprError> {
     match op {
         BinaryOp::Add => match (left, right) {
-            (Value::Int(a), Value::Int(b)) => a.checked_add(b).map(Value::Int).ok_or_else(|| {
-                ExprError::TypeError {
-                    span,
-                    message: "integer addition overflow".to_string(),
-                }
-            }),
+            (Value::Int(a), Value::Int(b)) => {
+                a.checked_add(b)
+                    .map(Value::Int)
+                    .ok_or_else(|| ExprError::TypeError {
+                        span,
+                        message: "integer addition overflow".to_string(),
+                    })
+            }
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
             (Value::Int(a), Value::Float(b)) => Ok(Value::Float(a as f64 + b)),
             (Value::Float(a), Value::Int(b)) => Ok(Value::Float(a + b as f64)),
@@ -232,12 +239,14 @@ fn eval_binary(op: BinaryOp, left: Value, right: Value, span: Span) -> Result<Va
             }),
         },
         BinaryOp::Sub => match (left, right) {
-            (Value::Int(a), Value::Int(b)) => a.checked_sub(b).map(Value::Int).ok_or_else(|| {
-                ExprError::TypeError {
-                    span,
-                    message: "integer subtraction overflow".to_string(),
-                }
-            }),
+            (Value::Int(a), Value::Int(b)) => {
+                a.checked_sub(b)
+                    .map(Value::Int)
+                    .ok_or_else(|| ExprError::TypeError {
+                        span,
+                        message: "integer subtraction overflow".to_string(),
+                    })
+            }
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a - b)),
             (Value::Int(a), Value::Float(b)) => Ok(Value::Float(a as f64 - b)),
             (Value::Float(a), Value::Int(b)) => Ok(Value::Float(a - b as f64)),
@@ -251,12 +260,14 @@ fn eval_binary(op: BinaryOp, left: Value, right: Value, span: Span) -> Result<Va
             }),
         },
         BinaryOp::Mul => match (left, right) {
-            (Value::Int(a), Value::Int(b)) => a.checked_mul(b).map(Value::Int).ok_or_else(|| {
-                ExprError::TypeError {
-                    span,
-                    message: "integer multiplication overflow".to_string(),
-                }
-            }),
+            (Value::Int(a), Value::Int(b)) => {
+                a.checked_mul(b)
+                    .map(Value::Int)
+                    .ok_or_else(|| ExprError::TypeError {
+                        span,
+                        message: "integer multiplication overflow".to_string(),
+                    })
+            }
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a * b)),
             (Value::Int(a), Value::Float(b)) => Ok(Value::Float(a as f64 * b)),
             (Value::Float(a), Value::Int(b)) => Ok(Value::Float(a * b as f64)),
@@ -293,13 +304,16 @@ fn eval_binary(op: BinaryOp, left: Value, right: Value, span: Span) -> Result<Va
                     if b == 0 {
                         return Err(ExprError::DivisionByZero { span });
                     }
-                    Ok(Value::Int(a.div_euclid(b) - if (a ^ b) < 0 && a % b != 0 {
-                        // Python floor division semantics: floor(a / b)
-                        // Note: div_euclid is non-negative remainder; compute exact floor(a/b):
-                        0
-                    } else {
-                        0
-                    }))
+                    Ok(Value::Int(
+                        a.div_euclid(b)
+                            - if (a ^ b) < 0 && a % b != 0 {
+                                // Python floor division semantics: floor(a / b)
+                                // Note: div_euclid is non-negative remainder; compute exact floor(a/b):
+                                0
+                            } else {
+                                0
+                            },
+                    ))
                     .map(|_| {
                         let d = a / b;
                         let r = a % b;
@@ -399,7 +413,9 @@ fn eval_binary(op: BinaryOp, left: Value, right: Value, span: Span) -> Result<Va
             compare_values(op, &left, &right, span)
         }
         BinaryOp::In => match right {
-            Value::List(items) => Ok(Value::Bool(items.iter().any(|item| values_equal(&left, item)))),
+            Value::List(items) => Ok(Value::Bool(
+                items.iter().any(|item| values_equal(&left, item)),
+            )),
             Value::Str(haystack) => match left {
                 Value::Str(needle) => Ok(Value::Bool(haystack.contains(&needle))),
                 other => Err(ExprError::TypeError {
@@ -440,7 +456,12 @@ fn values_equal(a: &Value, b: &Value) -> bool {
     }
 }
 
-fn compare_values(op: BinaryOp, left: &Value, right: &Value, span: Span) -> Result<Value, ExprError> {
+fn compare_values(
+    op: BinaryOp,
+    left: &Value,
+    right: &Value,
+    span: Span,
+) -> Result<Value, ExprError> {
     let ord = match (left, right) {
         (Value::Int(a), Value::Int(b)) => a.cmp(b),
         (Value::Str(a), Value::Str(b)) => a.cmp(b),
@@ -448,11 +469,7 @@ fn compare_values(op: BinaryOp, left: &Value, right: &Value, span: Span) -> Resu
             let (Some(a), Some(b)) = (l.as_f64(), r.as_f64()) else {
                 return Err(ExprError::TypeError {
                     span,
-                    message: format!(
-                        "cannot compare `{}` and `{}`",
-                        l.type_name(),
-                        r.type_name()
-                    ),
+                    message: format!("cannot compare `{}` and `{}`", l.type_name(), r.type_name()),
                 });
             };
             a.partial_cmp(&b).ok_or_else(|| ExprError::TypeError {
@@ -524,7 +541,10 @@ fn eval_call(func: &str, args: &[Value], span: Span) -> Result<Value, ExprError>
             // If input was an exact integer cube (e.g. `cbrt(512*8)` = 16), preserve clean integer if exact.
             if matches!(args[0], Value::Int(_)) {
                 let rounded = r.round() as i64;
-                if let Some(cubed) = rounded.checked_mul(rounded).and_then(|v| v.checked_mul(rounded)) {
+                if let Some(cubed) = rounded
+                    .checked_mul(rounded)
+                    .and_then(|v| v.checked_mul(rounded))
+                {
                     if Value::Int(cubed) == args[0] {
                         return Ok(Value::Int(rounded));
                     }
@@ -594,13 +614,16 @@ fn eval_call(func: &str, args: &[Value], span: Span) -> Result<Value, ExprError>
                 Value::Int(i) => Ok(Value::Int(*i)),
                 Value::Float(f) => Ok(Value::Int(*f as i64)),
                 Value::Bool(b) => Ok(Value::Int(i64::from(*b))),
-                Value::Str(s) => s.trim().parse::<i64>().map(Value::Int).map_err(|_| {
-                    ExprError::FunctionError {
-                        func: func.to_string(),
-                        span,
-                        message: format!("cannot parse `{s}` as int"),
-                    }
-                }),
+                Value::Str(s) => {
+                    s.trim()
+                        .parse::<i64>()
+                        .map(Value::Int)
+                        .map_err(|_| ExprError::FunctionError {
+                            func: func.to_string(),
+                            span,
+                            message: format!("cannot parse `{s}` as int"),
+                        })
+                }
                 other => Err(ExprError::FunctionError {
                     func: func.to_string(),
                     span,

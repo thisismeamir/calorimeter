@@ -25,10 +25,7 @@ pub fn dump_schemas_to_dir(out_dir: &Path) -> Result<Vec<std::path::PathBuf>, Ex
 }
 
 /// Validates a YAML `Value` against a JSON Schema YAML `Value`, reporting exact JSON-pointer paths (spec §0.2).
-pub fn validate_against_schema(
-    doc: &Value,
-    schema: &Value,
-) -> Result<(), Vec<ExportError>> {
+pub fn validate_against_schema(doc: &Value, schema: &Value) -> Result<(), Vec<ExportError>> {
     let mut errs = Vec::new();
     validate_node(doc, schema, "", &mut errs);
     if errs.is_empty() {
@@ -38,12 +35,7 @@ pub fn validate_against_schema(
     }
 }
 
-fn validate_node(
-    doc: &Value,
-    schema: &Value,
-    ptr: &str,
-    errs: &mut Vec<ExportError>,
-) {
+fn validate_node(doc: &Value, schema: &Value, ptr: &str, errs: &mut Vec<ExportError>) {
     let Value::Mapping(s_map) = schema else {
         return;
     };

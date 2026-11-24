@@ -89,7 +89,10 @@ fn builtin_functions_and_cbrt() {
 
     // Spec weak scaling example: `128 * cbrt(ranks)` and `cbrt(512*8)`
     assert_eq!(eval_str("cbrt(512*8)", &env).unwrap(), Value::Int(16));
-    assert_eq!(eval_str("128 * cbrt(ranks)", &env).unwrap(), Value::Int(256));
+    assert_eq!(
+        eval_str("128 * cbrt(ranks)", &env).unwrap(),
+        Value::Int(256)
+    );
 
     // Every built-in function
     assert_eq!(eval_str("min(5, 2, 9)", &env).unwrap(), Value::Int(2));
@@ -124,7 +127,10 @@ fn unresolved_reference_carries_exact_byte_span() {
             span: Span::new(11, 36),
         }
     );
-    assert_eq!(&src[err.span().start..err.span().end], "machine.node.gpu.per_node");
+    assert_eq!(
+        &src[err.span().start..err.span().end],
+        "machine.node.gpu.per_node"
+    );
 }
 
 #[test]

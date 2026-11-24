@@ -111,11 +111,17 @@ fn end_to_end_analyze_report_gates_context_and_diff() {
     ];
 
     for r in &recs_a {
-        let p = dir_a.join("records").join(&r.identity.run_id).join("run.yaml");
+        let p = dir_a
+            .join("records")
+            .join(&r.identity.run_id)
+            .join("run.yaml");
         write_atomic_bytes(&p, to_yaml_string(r).unwrap().as_bytes()).unwrap();
     }
     for r in &recs_b {
-        let p = dir_b.join("records").join(&r.identity.run_id).join("run.yaml");
+        let p = dir_b
+            .join("records")
+            .join(&r.identity.run_id)
+            .join("run.yaml");
         write_atomic_bytes(&p, to_yaml_string(r).unwrap().as_bytes()).unwrap();
     }
 

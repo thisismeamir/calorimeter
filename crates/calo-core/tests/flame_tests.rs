@@ -17,12 +17,18 @@ fn mk_frame(name: &str, class: Option<&str>) -> Frame {
 fn folded_round_trip_and_identical_stack_merge() {
     let mut tbl = StackTable::new();
     tbl.push(
-        vec![mk_frame("main", None), mk_frame("MPI_Allreduce", Some("mpi"))],
+        vec![
+            mk_frame("main", None),
+            mk_frame("MPI_Allreduce", Some("mpi")),
+        ],
         10,
         Some(0),
     );
     tbl.push(
-        vec![mk_frame("main", None), mk_frame("MPI_Allreduce", Some("mpi"))],
+        vec![
+            mk_frame("main", None),
+            mk_frame("MPI_Allreduce", Some("mpi")),
+        ],
         15,
         Some(0),
     );
@@ -76,10 +82,7 @@ fn diff_flamegraph_added_removed_changed_and_xml_escaping() {
     assert!(svg.contains("#7017FF"));
 
     // XML escaping check
-    assert_eq!(
-        xml_escape("foo<T & U>\"bar\""),
-        "foo<T & U>\"bar\""
-    );
+    assert_eq!(xml_escape("foo<T & U>\"bar\""), "foo<T & U>\"bar\"");
 
     // Golden structure check on tiny fixed tree
     let tiny_tbl = from_folded("root;leaf 10\n").unwrap();

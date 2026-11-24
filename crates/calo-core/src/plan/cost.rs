@@ -1,6 +1,6 @@
 //! Resource cost upper-bound estimation (`calo plan`, spec §8.5 R-BEN-2).
 
-use crate::expr::{interpolate, parse, eval, Value};
+use crate::expr::{eval, interpolate, parse, Value};
 use crate::plan::error::PlanError;
 use crate::plan::expand::PinnedRun;
 use crate::plan::selector::{resolve_machine_node, RunExprEnv};
@@ -60,7 +60,9 @@ pub fn estimate_cost(
             };
 
             let (nodes, ranks_per_node, gpus_per_rank) = if let Some(res) = &step.resources {
-                let n = eval_int_or_expr(res.nodes.as_ref(), &env).unwrap_or(1).max(1);
+                let n = eval_int_or_expr(res.nodes.as_ref(), &env)
+                    .unwrap_or(1)
+                    .max(1);
                 let rpn = eval_int_or_expr(res.ranks_per_node.as_ref(), &env)
                     .unwrap_or(1)
                     .max(1);

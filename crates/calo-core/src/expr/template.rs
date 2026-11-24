@@ -56,7 +56,9 @@ pub fn render_template(
     if let Some(logic_pos) = template.find("{%") {
         return Err(ExprError::TemplateError {
             span: Span::new(logic_pos, (logic_pos + 2).min(template.len())),
-            message: "logic blocks (`{% ... %}`) are forbidden in input file templates (spec R-STP-8)".to_string(),
+            message:
+                "logic blocks (`{% ... %}`) are forbidden in input file templates (spec R-STP-8)"
+                    .to_string(),
         });
     }
 

@@ -120,13 +120,14 @@ pub fn from_folded(input: &str) -> Result<StackTable, FlameError> {
                 reason: "missing whitespace separator before weight".to_string(),
             });
         };
-        let weight: u64 = weight_part
-            .trim()
-            .parse()
-            .map_err(|_| FlameError::InvalidFoldedLine {
-                line: line_no,
-                reason: format!("invalid integer weight `{}`", weight_part.trim()),
-            })?;
+        let weight: u64 =
+            weight_part
+                .trim()
+                .parse()
+                .map_err(|_| FlameError::InvalidFoldedLine {
+                    line: line_no,
+                    reason: format!("invalid integer weight `{}`", weight_part.trim()),
+                })?;
 
         let stack: Vec<Frame> = stack_part
             .split(';')
@@ -240,7 +241,8 @@ impl FlameTree {
 }
 
 fn prune_node(node: &mut FlameNode, min_weight: u64) {
-    node.children.retain(|_, child| child.total_weight >= min_weight);
+    node.children
+        .retain(|_, child| child.total_weight >= min_weight);
     for child in node.children.values_mut() {
         prune_node(child, min_weight);
     }

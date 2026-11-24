@@ -6,6 +6,8 @@
 pub mod channel;
 pub mod clock;
 pub mod counters;
+pub mod discover;
+pub mod gpu;
 pub mod observe;
 pub mod probe;
 pub mod profile;
@@ -14,4 +16,3 @@ pub mod series;
 pub mod spawn;
 pub mod sys;
 pub mod table_writer;
-pub mod discover;

@@ -12,11 +12,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 /// Executes `calo status` on `results_dir` (spec §14).
-pub fn execute_status(
-    results_dir: &Path,
-    format: PlanFormat,
-    quiet: bool,
-) -> anyhow::Result<u8> {
+pub fn execute_status(results_dir: &Path, format: PlanFormat, quiet: bool) -> anyhow::Result<u8> {
     let suite_results = resolve_suite_results_dir(results_dir)?;
     let res = ResultsDir::from_existing(suite_results, "");
     let adapter = LocalAdapter::new(Arc::new(RealCommandRunner));
@@ -32,11 +28,7 @@ pub fn execute_status(
 }
 
 /// Executes `calo cancel` on `results_dir` for matching runs (spec §14).
-pub fn execute_cancel(
-    results_dir: &Path,
-    select: Option<&str>,
-    quiet: bool,
-) -> anyhow::Result<u8> {
+pub fn execute_cancel(results_dir: &Path, select: Option<&str>, quiet: bool) -> anyhow::Result<u8> {
     let suite_results = resolve_suite_results_dir(results_dir)?;
     let res = ResultsDir::from_existing(suite_results, "");
     let adapter = LocalAdapter::new(Arc::new(RealCommandRunner));

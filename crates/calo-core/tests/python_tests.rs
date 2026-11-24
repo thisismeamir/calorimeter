@@ -99,7 +99,10 @@ fn python_service_round_trip_redaction_mismatch_timeout_and_missing() {
         &runner_ok,
     )
     .unwrap();
-    assert_eq!(out.column("alpha").unwrap().to_f64_vec("alpha").unwrap(), vec![2.5]);
+    assert_eq!(
+        out.column("alpha").unwrap().to_f64_vec("alpha").unwrap(),
+        vec![2.5]
+    );
     assert!(runner_ok
         .last_spec
         .lock()

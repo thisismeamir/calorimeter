@@ -13,8 +13,8 @@ pub use builtins::{
 pub use error::ServiceError;
 pub use extended::{
     CommFractionService, CommMatrixService, CompareService, GpuUtilizationService,
-    KernelHotspotsService, LaunchOverheadService, MessageSizeProfileService, RegionBreakdownService,
-    ScalingFitService, StubService, TransferSummaryService,
+    KernelHotspotsService, LaunchOverheadService, MessageSizeProfileService,
+    RegionBreakdownService, ScalingFitService, StubService, TransferSummaryService,
 };
 pub use frame::{Column, Frame};
 pub use registry::{Options, ServiceLayer, ServiceRegistry};

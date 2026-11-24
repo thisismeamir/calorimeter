@@ -158,9 +158,12 @@ fn no_symbols_detects_stripped_binary() {
         "stripped binary must report no symbols"
     );
 
-    let mut collector =
-        ProfileCollector::open(std::process::id() as libc::pid_t, ProfileConfig::default(), &dir)
-            .unwrap();
+    let mut collector = ProfileCollector::open(
+        std::process::id() as libc::pid_t,
+        ProfileConfig::default(),
+        &dir,
+    )
+    .unwrap();
     let has_syms = collector.check_main_executable_symbols(&bin_copy);
     assert!(!has_syms);
     let summary = collector.finish(has_syms).unwrap();
@@ -172,7 +175,6 @@ fn no_symbols_detects_stripped_binary() {
 
     let _ = fs::remove_dir_all(&dir);
 }
-
 
 #[test]
 fn probe_run_profile_mode_emits_sidecars_and_rejects_stripped_binary() {
@@ -261,9 +263,15 @@ int main(void) {
         .as_ref()
         .expect("observations.profile must be populated in Mode::Profile");
     assert_eq!(prof.method, CallgraphMethod::Fp);
-    assert_eq!(outcome.record.provenance.callgraph, Some(CallgraphMethod::Fp));
+    assert_eq!(
+        outcome.record.provenance.callgraph,
+        Some(CallgraphMethod::Fp)
+    );
     if prof.samples > 0 {
-        assert!(!prof.modules.is_empty(), "expected executable modules from MMAP2");
+        assert!(
+            !prof.modules.is_empty(),
+            "expected executable modules from MMAP2"
+        );
     }
 
     // R-BLD-3: stripped binary must be marked Invalid with NoSymbols in profile mode.

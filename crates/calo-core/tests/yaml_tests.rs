@@ -72,10 +72,7 @@ options:
     // Overridden by main suite.yaml
     assert_eq!(opts.strict_hardware, Some(true));
     // Overridden by second.yaml over first.yaml
-    assert_eq!(
-        opts.order,
-        Some(calo_schema::suite::RunOrder::Random)
-    );
+    assert_eq!(opts.order, Some(calo_schema::suite::RunOrder::Random));
     // Lists replace (second.yaml replaced first.yaml's list)
     assert_eq!(opts.redact, vec!["TOKEN_C".to_string()]);
     // Maps merge recursively (both throughput from first.yaml and sites from second.yaml present)
@@ -188,7 +185,9 @@ options:
         .add_cli_set("benchmarks.0.repeat=3")
         .add_cli_set("benchmarks.0.params.N=128");
 
-    let resolved = builder.resolve::<Suite>().expect("layered resolve must succeed");
+    let resolved = builder
+        .resolve::<Suite>()
+        .expect("layered resolve must succeed");
     assert_eq!(resolved.value.suite.name, "cosmo");
     assert_eq!(
         resolved.value.options.as_ref().unwrap().strict_hardware,
@@ -221,10 +220,7 @@ options:
         Layer::CliSet
     );
     assert_eq!(
-        manifest_origins
-            .get("benchmarks.0.params.N")
-            .unwrap()
-            .layer,
+        manifest_origins.get("benchmarks.0.params.N").unwrap().layer,
         Layer::CliSet
     );
 }

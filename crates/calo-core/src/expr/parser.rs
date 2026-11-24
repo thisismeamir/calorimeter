@@ -271,7 +271,8 @@ impl<'a> Parser<'a> {
                                 }
                             }
                         }
-                        let close = self.expect(&TokenKind::RParen, "`)` after function arguments")?;
+                        let close =
+                            self.expect(&TokenKind::RParen, "`)` after function arguments")?;
                         let full_span = tok.span.merge(close.span);
                         if self.peek().is_some_and(|t| t.kind == TokenKind::Dot) {
                             return Err(ExprError::Parse {

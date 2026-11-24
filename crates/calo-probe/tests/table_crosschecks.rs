@@ -57,15 +57,25 @@ fn header_definitions_match_normative_column_specs() {
         ("gpu.kernels", tables::GPU_KERNELS_COLUMNS),
         ("gpu.memcpy", tables::GPU_MEMCPY_COLUMNS),
         ("gpu.counters", tables::GPU_COUNTERS_COLUMNS),
-        ("gpu.clock_correlation", tables::GPU_CLOCK_CORRELATION_COLUMNS),
+        (
+            "gpu.clock_correlation",
+            tables::GPU_CLOCK_CORRELATION_COLUMNS,
+        ),
     ];
 
     for (name, expected) in all_tables {
         let hdr = tables::header_for(name, BTreeMap::new()).expect("header_for");
-        assert_eq!(hdr.columns.len(), expected.len(), "column count mismatch for {name}");
+        assert_eq!(
+            hdr.columns.len(),
+            expected.len(),
+            "column count mismatch for {name}"
+        );
         for (col, &(exp_name, exp_ty)) in hdr.columns.iter().zip(expected.iter()) {
             assert_eq!(col.name, exp_name, "column name mismatch in {name}");
-            assert_eq!(col.col_type, exp_ty, "column type mismatch in {name}.{exp_name}");
+            assert_eq!(
+                col.col_type, exp_ty,
+                "column type mismatch in {name}.{exp_name}"
+            );
         }
     }
 }
@@ -138,7 +148,10 @@ fn all_twelve_tables_two_row_exact_column_round_trip() {
 
     // 3. profile.chains
     let p = dir.join("profile.chains.calotbl");
-    let rows = vec![ProfileChainRow { ip: i64::MIN }, ProfileChainRow { ip: 0x7fff_1234 }];
+    let rows = vec![
+        ProfileChainRow { ip: i64::MIN },
+        ProfileChainRow { ip: 0x7fff_1234 },
+    ];
     let mut w = TableWriter::create_profile_chains(&p, "profile.chains.calotbl").unwrap();
     for r in &rows {
         w.push_profile_chain(r).unwrap();
@@ -178,8 +191,20 @@ fn all_twelve_tables_two_row_exact_column_round_trip() {
     // 5. mpi.peers
     let p = dir.join("mpi.peers.calotbl");
     let rows = vec![
-        MpiPeerRow { comm_id: 1, peer_rank: 2, direction: 0, msgs: 10, bytes: 4096 },
-        MpiPeerRow { comm_id: 1, peer_rank: 3, direction: 1, msgs: 20, bytes: 8192 },
+        MpiPeerRow {
+            comm_id: 1,
+            peer_rank: 2,
+            direction: 0,
+            msgs: 10,
+            bytes: 4096,
+        },
+        MpiPeerRow {
+            comm_id: 1,
+            peer_rank: 3,
+            direction: 1,
+            msgs: 20,
+            bytes: 8192,
+        },
     ];
     let mut w = TableWriter::create_mpi_peers(&p, "mpi.peers.calotbl").unwrap();
     for r in &rows {
@@ -362,8 +387,16 @@ fn all_twelve_tables_two_row_exact_column_round_trip() {
     // 11. gpu.counters
     let p = dir.join("gpu.counters.calotbl");
     let rows = vec![
-        GpuCounterRow { corr_id: 1, counter: "sm__active".into(), value: 82.5 },
-        GpuCounterRow { corr_id: 2, counter: "dram__bytes".into(), value: f64::NAN },
+        GpuCounterRow {
+            corr_id: 1,
+            counter: "sm__active".into(),
+            value: 82.5,
+        },
+        GpuCounterRow {
+            corr_id: 2,
+            counter: "dram__bytes".into(),
+            value: f64::NAN,
+        },
     ];
     let mut w = TableWriter::create_gpu_counters(&p, "gpu.counters.calotbl").unwrap();
     for r in &rows {
@@ -378,8 +411,14 @@ fn all_twelve_tables_two_row_exact_column_round_trip() {
     // 12. gpu.clock_correlation
     let p = dir.join("gpu.clock_correlation.calotbl");
     let rows = vec![
-        GpuClockCorrelationRow { host_ns: -100, device_ns: 500 },
-        GpuClockCorrelationRow { host_ns: 1000, device_ns: 1600 },
+        GpuClockCorrelationRow {
+            host_ns: -100,
+            device_ns: 500,
+        },
+        GpuClockCorrelationRow {
+            host_ns: 1000,
+            device_ns: 1600,
+        },
     ];
     let mut w =
         TableWriter::create_gpu_clock_correlation(&p, "gpu.clock_correlation.calotbl").unwrap();

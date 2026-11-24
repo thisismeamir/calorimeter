@@ -5,7 +5,9 @@ use crate::table::{open, ColumnData, TableError};
 use calo_schema::common::{Warning, WarningCode};
 use calo_schema::table::ColumnType;
 use parquet::basic::{ConvertedType, Repetition, Type as PhysicalType};
-use parquet::data_type::{ByteArray, ByteArrayType, DoubleType, FloatType, Int32Type, Int64Type};
+use parquet::data_type::{
+    BoolType, ByteArray, ByteArrayType, DoubleType, FloatType, Int32Type, Int64Type,
+};
 use parquet::file::metadata::KeyValue;
 use parquet::file::properties::WriterProperties;
 use parquet::file::writer::SerializedFileWriter;
@@ -43,9 +45,12 @@ pub fn export_sidecar_to_parquet(
     for col in &header.columns {
         let (phys, conv) = match col.col_type {
             ColumnType::Int32 | ColumnType::Uint8 => (PhysicalType::INT32, ConvertedType::NONE),
+            ColumnType::Uint32 => (PhysicalType::INT32, ConvertedType::UINT_32),
             ColumnType::Int64 => (PhysicalType::INT64, ConvertedType::NONE),
+            ColumnType::Uint64 => (PhysicalType::INT64, ConvertedType::UINT_64),
             ColumnType::Float32 => (PhysicalType::FLOAT, ConvertedType::NONE),
             ColumnType::Float64 => (PhysicalType::DOUBLE, ConvertedType::NONE),
+            ColumnType::Bool => (PhysicalType::BOOLEAN, ConvertedType::NONE),
             ColumnType::StringId => (PhysicalType::BYTE_ARRAY, ConvertedType::UTF8),
         };
         let field = Type::primitive_type_builder(&col.name, phys)
@@ -149,10 +154,30 @@ pub fn export_sidecar_to_parquet(
                 ColumnData::StringId(_) => {
                     let resolved = block.strings(&col_def.name, &header)?;
                     let byte_arrays: Vec<ByteArray> =
-                        resolved.into_iter().map(|s| ByteArray::from(s)).collect();
+                        resolved.into_iter().map(ByteArray::from).collect();
                     col_writer
                         .typed::<ByteArrayType>()
                         .write_batch(&byte_arrays, None, None)
+                        .map_err(|e| ExportError::Parquet(e.to_string()))?;
+                }
+                ColumnData::Uint32(vs) => {
+                    let bits: Vec<i32> = vs.iter().map(|&v| v as i32).collect();
+                    col_writer
+                        .typed::<Int32Type>()
+                        .write_batch(&bits, None, None)
+                        .map_err(|e| ExportError::Parquet(e.to_string()))?;
+                }
+                ColumnData::Uint64(vs) => {
+                    let bits: Vec<i64> = vs.iter().map(|&v| v as i64).collect();
+                    col_writer
+                        .typed::<Int64Type>()
+                        .write_batch(&bits, None, None)
+                        .map_err(|e| ExportError::Parquet(e.to_string()))?;
+                }
+                ColumnData::Bool(vs) => {
+                    col_writer
+                        .typed::<BoolType>()
+                        .write_batch(vs, None, None)
                         .map_err(|e| ExportError::Parquet(e.to_string()))?;
                 }
             }

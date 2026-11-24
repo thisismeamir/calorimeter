@@ -199,10 +199,7 @@ pub struct Normalizer {
 
 impl Normalizer {
     /// Compiles user `fold` and `classes` rules plus built-in classification rules (spec §12.1).
-    pub fn new(
-        fold: &[SymbolFoldRule],
-        classes: &[SymbolClassRule],
-    ) -> Result<Self, SymbolError> {
+    pub fn new(fold: &[SymbolFoldRule], classes: &[SymbolClassRule]) -> Result<Self, SymbolError> {
         let mut fold_rules = Vec::with_capacity(fold.len());
         for (idx, rule) in fold.iter().enumerate() {
             let regex = Regex::new(&rule.match_regex).map_err(|e| SymbolError::InvalidRegex {
@@ -274,7 +271,10 @@ impl Normalizer {
         }
 
         for rule in &self.fold_rules {
-            name = rule.regex.replace_all(&name, rule.replace_as.as_str()).into_owned();
+            name = rule
+                .regex
+                .replace_all(&name, rule.replace_as.as_str())
+                .into_owned();
         }
 
         let class = self.classify_name(&name).map(str::to_string);

@@ -305,7 +305,10 @@ fn selector_intersection_union_and_glob() {
         calo_core::plan::selector::resolve_machine_node(&inv, "hpc-a/gpu-a100").unwrap();
     let params = BTreeMap::from([
         ("N".to_string(), ScalarValue::Int(256)),
-        ("patch".to_string(), ScalarValue::Str("fast-fft".to_string())),
+        (
+            "patch".to_string(),
+            ScalarValue::Str("fast-fft".to_string()),
+        ),
     ]);
     let tiers = TiersActive {
         cpu: Some(CpuTier::T1),

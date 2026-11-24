@@ -14,7 +14,7 @@ use calo_schema::{
         Discovery, FieldProvenance, ObservedCache, ObservedCpu, ObservedHardware, ObservedMemory,
         ObservedPolicy, UnresolvedField,
     },
-    SchemaDoc,
+    GpuTier, SchemaDoc,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -42,15 +42,30 @@ pub fn discover_local(_opts: &DiscoverOpts) -> Discovery {
 
     let kernel = read_trimmed("/proc/sys/kernel/osrelease");
     if kernel.is_some() {
-        record_field(&mut fields, "kernel", "/proc/sys/kernel/osrelease", Confidence::Queried);
+        record_field(
+            &mut fields,
+            "kernel",
+            "/proc/sys/kernel/osrelease",
+            Confidence::Queried,
+        );
     }
     let hostname = read_trimmed("/proc/sys/kernel/hostname");
     if hostname.is_some() {
-        record_field(&mut fields, "hostname", "/proc/sys/kernel/hostname", Confidence::Queried);
+        record_field(
+            &mut fields,
+            "hostname",
+            "/proc/sys/kernel/hostname",
+            Confidence::Queried,
+        );
     }
     let distribution = read_os_release();
     if distribution.is_some() {
-        record_field(&mut fields, "distribution", "/etc/os-release", Confidence::Queried);
+        record_field(
+            &mut fields,
+            "distribution",
+            "/etc/os-release",
+            Confidence::Queried,
+        );
     }
 
     // Test-open built-in counter aliases on self (pid = 0) without root.
@@ -80,7 +95,11 @@ pub fn discover_local(_opts: &DiscoverOpts) -> Discovery {
     } else {
         CpuTier::T0
     };
-
+    let observed_gpus = crate::gpu::discover_gpus();
+    if !observed_gpus.is_empty() {
+        record_field(&mut fields, "gpus", "nvml", Confidence::Queried);
+    }
+    let gpu_tier = (!observed_gpus.is_empty()).then_some(GpuTier::G0);
     let observed = ObservedHardware {
         cpu,
         memory,
@@ -89,7 +108,7 @@ pub fn discover_local(_opts: &DiscoverOpts) -> Discovery {
         hostname,
         policy,
         counters_available,
-        gpus: Vec::new(),
+        gpus: observed_gpus,
         nic: Vec::new(),
         mpi: None,
     };
@@ -104,7 +123,7 @@ pub fn discover_local(_opts: &DiscoverOpts) -> Discovery {
         tiers_supported: Some(TiersActive {
             cpu: Some(cpu_tier),
             mpi: None,
-            gpu: None,
+            gpu: gpu_tier,
         }),
         observed,
         toolchain: None,
@@ -167,8 +186,8 @@ fn read_cpu(
     let mut isa_set = BTreeSet::new();
 
     const INTERESTING_ISA: &[&str] = &[
-        "sse4_2", "avx", "avx2", "fma", "avx512f", "avx512dq", "avx512bw", "avx512vl",
-        "amx_tile", "sve", "sve2", "asimd", "neon",
+        "sse4_2", "avx", "avx2", "fma", "avx512f", "avx512dq", "avx512bw", "avx512vl", "amx_tile",
+        "sve", "sve2", "asimd", "neon",
     ];
 
     for line in raw.lines() {
@@ -386,7 +405,12 @@ fn read_policy(
     if governor.is_none() && turbo.is_none() && smt.is_none() && perf_event_paranoid.is_none() {
         return None;
     }
-    record_field(fields, "policy", "/sys + /proc/sys/kernel", Confidence::Queried);
+    record_field(
+        fields,
+        "policy",
+        "/sys + /proc/sys/kernel",
+        Confidence::Queried,
+    );
     Some(ObservedPolicy {
         governor,
         turbo,

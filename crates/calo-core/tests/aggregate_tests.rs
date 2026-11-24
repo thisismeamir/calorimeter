@@ -1,5 +1,7 @@
 use calo_core::aggregate::aggregate_run;
-use calo_schema::common::{CpuTier, GpuTier, Mode, MpiTier, Status, TiersActive, Warning, WarningCode};
+use calo_schema::common::{
+    CpuTier, GpuTier, Mode, MpiTier, Status, TiersActive, Warning, WarningCode,
+};
 use calo_schema::discovery::ObservedHardware;
 use calo_schema::record::{
     ExitInfo, PhaseSpan, Record, RecordEnvironment, RecordIdentity, RecordObservations,

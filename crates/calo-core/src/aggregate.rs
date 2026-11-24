@@ -84,13 +84,22 @@ pub fn aggregate_run(rank_records: &[Record]) -> Result<Record, AggregateError> 
 
         if let Some(s) = &r.observations.scalars {
             if let Some(v) = s.wall_s {
-                scalar_samples.entry("wall_s".to_string()).or_default().push(v);
+                scalar_samples
+                    .entry("wall_s".to_string())
+                    .or_default()
+                    .push(v);
             }
             if let Some(v) = s.user_cpu_s {
-                scalar_samples.entry("user_cpu_s".to_string()).or_default().push(v);
+                scalar_samples
+                    .entry("user_cpu_s".to_string())
+                    .or_default()
+                    .push(v);
             }
             if let Some(v) = s.sys_cpu_s {
-                scalar_samples.entry("sys_cpu_s".to_string()).or_default().push(v);
+                scalar_samples
+                    .entry("sys_cpu_s".to_string())
+                    .or_default()
+                    .push(v);
             }
             if let Some(v) = s.peak_rss_bytes {
                 scalar_samples
@@ -136,13 +145,22 @@ pub fn aggregate_run(rank_records: &[Record]) -> Result<Record, AggregateError> 
             }
             if let Some(e) = &s.energy_j {
                 if let Some(v) = e.pkg {
-                    scalar_samples.entry("energy_j.pkg".to_string()).or_default().push(v);
+                    scalar_samples
+                        .entry("energy_j.pkg".to_string())
+                        .or_default()
+                        .push(v);
                 }
                 if let Some(v) = e.dram {
-                    scalar_samples.entry("energy_j.dram".to_string()).or_default().push(v);
+                    scalar_samples
+                        .entry("energy_j.dram".to_string())
+                        .or_default()
+                        .push(v);
                 }
                 if let Some(v) = e.gpu {
-                    scalar_samples.entry("energy_j.gpu".to_string()).or_default().push(v);
+                    scalar_samples
+                        .entry("energy_j.gpu".to_string())
+                        .or_default()
+                        .push(v);
                 }
             }
             for (c_name, c_val) in &s.counters {
@@ -245,11 +263,7 @@ fn min_opt_tier<T: Ord + Copy>(iter: impl Iterator<Item = Option<T>>) -> Option<
     .flatten()
 }
 
-fn accumulate_region_tree(
-    nodes: &[RegionNode],
-    prefix: &str,
-    out: &mut BTreeMap<String, f64>,
-) {
+fn accumulate_region_tree(nodes: &[RegionNode], prefix: &str, out: &mut BTreeMap<String, f64>) {
     for n in nodes {
         let path = if prefix.is_empty() {
             n.name.clone()

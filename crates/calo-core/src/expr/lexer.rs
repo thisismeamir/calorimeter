@@ -197,7 +197,9 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, ExprError> {
                 } else {
                     return Err(ExprError::Lex {
                         span: Span::new(start, start + 1),
-                        message: "assignment `=` is not allowed in expressions (use `==` for equality)".to_string(),
+                        message:
+                            "assignment `=` is not allowed in expressions (use `==` for equality)"
+                                .to_string(),
                     });
                 }
             }
@@ -261,7 +263,8 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, ExprError> {
                         if i >= len {
                             return Err(ExprError::Lex {
                                 span: Span::new(start, i),
-                                message: "unterminated escape sequence in string literal".to_string(),
+                                message: "unterminated escape sequence in string literal"
+                                    .to_string(),
                             });
                         }
                         let esc = bytes[i];
@@ -275,7 +278,10 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, ExprError> {
                             other => {
                                 return Err(ExprError::Lex {
                                     span: Span::new(i - 1, i + 1),
-                                    message: format!("unsupported escape sequence `\\{}`", other as char),
+                                    message: format!(
+                                        "unsupported escape sequence `\\{}`",
+                                        other as char
+                                    ),
                                 });
                             }
                         }

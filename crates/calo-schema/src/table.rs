@@ -1,4 +1,3 @@
-
 //! Binary sidecar table header and reference definitions (`calo.table/1`, spec §10, §11).
 
 use crate::error::SchemaError;
@@ -62,10 +61,7 @@ impl ColumnType {
     pub const fn byte_width(self) -> usize {
         match self {
             Self::Uint8 | Self::Bool => 1,
-            Self::Uint32
-            | Self::Int32
-            | Self::Float32
-            | Self::StringId => 4,
+            Self::Uint32 | Self::Int32 | Self::Float32 | Self::StringId => 4,
             Self::Uint64 | Self::Int64 | Self::Float64 => 8,
         }
     }

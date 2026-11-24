@@ -37,9 +37,9 @@ impl Worktree {
         runner: &dyn CommandRunner,
     ) -> Result<Self, WorkspaceError> {
         let cache_repo = workdir.join("cache").join(format!("{source_name}.git"));
-        let wt_dir = workdir.join("worktrees").join(format!(
-            "{source_name}-{patchset_name}-{machine_name}"
-        ));
+        let wt_dir = workdir
+            .join("worktrees")
+            .join(format!("{source_name}-{patchset_name}-{machine_name}"));
 
         if let Some(parent) = cache_repo.parent() {
             fs::create_dir_all(parent).map_err(|source| WorkspaceError::Io {
@@ -189,9 +189,8 @@ impl Worktree {
             });
         }
 
-        let tree_out = runner.run(
-            &CommandSpec::new("git", vec!["write-tree".to_string()]).with_cwd(&wt_dir),
-        )?;
+        let tree_out = runner
+            .run(&CommandSpec::new("git", vec!["write-tree".to_string()]).with_cwd(&wt_dir))?;
         if !tree_out.success() {
             return Err(WorkspaceError::GitFailed {
                 stage: "git write-tree",

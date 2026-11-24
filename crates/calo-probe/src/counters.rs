@@ -375,10 +375,7 @@ impl CounterSet {
                     match Counter::open_with_type(spec.type_, spec.config, pid, false) {
                         Ok(counter) => Ok((counter, false)),
                         Err(err)
-                            if matches!(
-                                err.raw_os_error(),
-                                Some(libc::EACCES | libc::EPERM)
-                            ) =>
+                            if matches!(err.raw_os_error(), Some(libc::EACCES | libc::EPERM)) =>
                         {
                             Counter::open_with_type(spec.type_, spec.config, pid, true)
                                 .map(|counter| (counter, true))

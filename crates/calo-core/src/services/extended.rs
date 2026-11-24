@@ -773,7 +773,12 @@ impl Service for LaunchOverheadService {
     }
 
     fn produces(&self) -> &'static [&'static str] {
-        &["launches", "total_launch_s", "mean_launch_us", "max_launch_us"]
+        &[
+            "launches",
+            "total_launch_s",
+            "mean_launch_us",
+            "max_launch_us",
+        ]
     }
 
     fn requires(&self) -> &'static [Tier] {
@@ -911,8 +916,7 @@ fn erfc_approx(x: f64) -> f64 {
                         + t * (-0.18628806
                             + t * (0.27886807
                                 + t * (-1.13520398
-                                    + t * (1.48851587
-                                        + t * (-0.82215223 + t * 0.17087277)))))))))
+                                    + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))))
             .exp();
     if x >= 0.0 {
         ans

@@ -153,7 +153,10 @@ pub fn execute_verify(
 
     let Some(machine) = inv.machines.get(machine_name) else {
         if !quiet {
-            eprintln!("machine `{machine_name}` not found in {}", inventory_path.display());
+            eprintln!(
+                "machine `{machine_name}` not found in {}",
+                inventory_path.display()
+            );
         }
         return Ok(exit_codes::DISCOVERY_FAILURE);
     };

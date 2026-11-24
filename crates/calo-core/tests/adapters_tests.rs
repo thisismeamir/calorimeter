@@ -42,7 +42,9 @@ PartitionName=gpu AllowAccounts=physics,astro AllowQos=normal Default=NO MaxTime
     assert_eq!(sc_parts[0].allow_accounts, vec!["physics", "astro"]);
 
     let report = list_partitions_report(&parts, "login.hpc");
-    assert!(report.contains("calo spec --connect slurm://login.hpc --partition cpu --partition gpu"));
+    assert!(
+        report.contains("calo spec --connect slurm://login.hpc --partition cpu --partition gpu")
+    );
 }
 
 #[test]
@@ -61,7 +63,9 @@ machines:
     .unwrap();
 
     // Named in `--partition` -> ok
-    assert!(assert_partition_named(&["debug".to_string()], Some(&inv), Some("hpc"), "debug").is_ok());
+    assert!(
+        assert_partition_named(&["debug".to_string()], Some(&inv), Some("hpc"), "debug").is_ok()
+    );
     // Named in inventory `partitions:` -> ok
     assert!(assert_partition_named(&[], Some(&inv), Some("hpc"), "gpu").is_ok());
     // Unnamed -> refused
@@ -114,15 +118,28 @@ fn sbatch_script_golden_shapes_and_slurm_job_states() {
             output_log: None,
         },
         &[
-            vec!["srun".into(), "probe".into(), "--runspec".into(), "r1.yaml".into()],
-            vec!["srun".into(), "probe".into(), "--runspec".into(), "r2.yaml".into()],
+            vec![
+                "srun".into(),
+                "probe".into(),
+                "--runspec".into(),
+                "r1.yaml".into(),
+            ],
+            vec![
+                "srun".into(),
+                "probe".into(),
+                "--runspec".into(),
+                "r2.yaml".into(),
+            ],
         ],
     );
     assert!(group_gpu.contains("#SBATCH --gpus-per-task=1"));
     assert!(!group_gpu.contains("#SBATCH --exclusive"));
     assert!(group_gpu.contains("srun probe --runspec r1.yaml\nsrun probe --runspec r2.yaml"));
 
-    assert_eq!(SlurmAdapter::parse_sbatch_job_id("123456;cluster0\n").unwrap(), "123456");
+    assert_eq!(
+        SlurmAdapter::parse_sbatch_job_id("123456;cluster0\n").unwrap(),
+        "123456"
+    );
 
     // JobState parsing across Slurm states
     assert_eq!(parse_slurm_job_state("PENDING"), JobState::Pending);
@@ -132,8 +149,14 @@ fn sbatch_script_golden_shapes_and_slurm_job_states() {
     assert_eq!(parse_slurm_job_state("TIMEOUT"), JobState::TimedOut);
     assert_eq!(parse_slurm_job_state("CANCELLED+"), JobState::Cancelled);
     assert_eq!(parse_slurm_job_state("PREEMPTED"), JobState::Cancelled);
-    assert_eq!(parse_slurm_job_state("FAILED"), JobState::Failed { code: None });
-    assert_eq!(parse_slurm_job_state("OUT_OF_MEMORY"), JobState::Failed { code: None });
+    assert_eq!(
+        parse_slurm_job_state("FAILED"),
+        JobState::Failed { code: None }
+    );
+    assert_eq!(
+        parse_slurm_job_state("OUT_OF_MEMORY"),
+        JobState::Failed { code: None }
+    );
 }
 
 #[test]

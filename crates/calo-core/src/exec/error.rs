@@ -45,7 +45,9 @@ pub enum ExecError {
     },
 
     /// `measure` mode benchmark attempted to enable sampling or shims (spec §8.5 R-BEN-3).
-    #[error("benchmark `{benchmark}` is in `measure` mode, which forbids {feature} (spec R-BEN-3)")]
+    #[error(
+        "benchmark `{benchmark}` is in `measure` mode, which forbids {feature} (spec R-BEN-3)"
+    )]
     InvalidModeConfig {
         /// Benchmark name.
         benchmark: String,

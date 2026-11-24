@@ -105,8 +105,7 @@ pub fn execute_build(
 
     if policy == RebuildPolicy::Cache && marker_path.exists() {
         if let Ok(raw) = fs::read_to_string(&marker_path) {
-            if let Ok(cached_hashes) =
-                calo_schema::yaml::from_str::<BTreeMap<String, String>>(&raw)
+            if let Ok(cached_hashes) = calo_schema::yaml::from_str::<BTreeMap<String, String>>(&raw)
             {
                 return Ok(BuildOutcome {
                     cache_key,
@@ -173,9 +172,7 @@ pub fn execute_build(
         if prev != artifact_hashes {
             warnings.push(Warning {
                 code: WarningCode::BuildNondeterministic,
-                message: format!(
-                    "build `{build_name}` artifact hashes changed across rebuild"
-                ),
+                message: format!("build `{build_name}` artifact hashes changed across rebuild"),
             });
         }
     }

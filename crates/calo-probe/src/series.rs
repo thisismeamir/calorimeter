@@ -77,7 +77,7 @@ impl HostSampler {
             notes,
             noted_children_absent: false,
             noted_tree_truncated: false,
-            last_rss_bytes: None
+            last_rss_bytes: None,
         }
     }
 

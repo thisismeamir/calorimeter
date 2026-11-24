@@ -92,7 +92,10 @@ fn real_git_worktree_patches_and_checkout_untouched() {
     // Initialize a real temporary git repo
     let git_in = |args: &[&str]| {
         runner
-            .run(&CommandSpec::new("git", args.iter().map(|s| s.to_string()).collect()).with_cwd(&user_repo))
+            .run(
+                &CommandSpec::new("git", args.iter().map(|s| s.to_string()).collect())
+                    .with_cwd(&user_repo),
+            )
             .unwrap()
     };
     assert!(git_in(&["init"]).success());
@@ -104,7 +107,10 @@ fn real_git_worktree_patches_and_checkout_untouched() {
     assert!(git_in(&["commit", "-m", "init"]).success());
 
     let head_sha = git_in(&["rev-parse", "HEAD"]).stdout.trim().to_string();
-    let user_tree_before = git_in(&["rev-parse", "HEAD^{tree}"]).stdout.trim().to_string();
+    let user_tree_before = git_in(&["rev-parse", "HEAD^{tree}"])
+        .stdout
+        .trim()
+        .to_string();
 
     // Create a valid unified diff patch
     let patch_file = dir.join("add_region.patch");
@@ -147,7 +153,10 @@ fn real_git_worktree_patches_and_checkout_untouched() {
         fs::read_to_string(user_repo.join("main.txt")).unwrap(),
         "hello\n"
     );
-    let user_tree_after = git_in(&["rev-parse", "HEAD^{tree}"]).stdout.trim().to_string();
+    let user_tree_after = git_in(&["rev-parse", "HEAD^{tree}"])
+        .stdout
+        .trim()
+        .to_string();
     assert_eq!(user_tree_before, user_tree_after);
 
     // Test conflict `fail` vs `skip` with a bad patch

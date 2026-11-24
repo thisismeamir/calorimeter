@@ -7,10 +7,10 @@ pub mod inventory;
 pub mod manifest;
 pub mod record;
 pub mod runspec;
+pub mod schema_gen;
 pub mod suite;
 pub mod table;
 pub mod tables;
-pub mod schema_gen;
 
 pub use common::{
     CallgraphMethod, Confidence, CpuTier, GpuTier, Mode, MpiTier, RegionStorageMode, ScalarValue,
@@ -30,9 +30,8 @@ use serde::{Deserialize, Serialize};
 
 /// Isolated YAML backend wrapper (spec §0.1).
 pub mod yaml {
-    pub use serde_yaml_ng::{from_str, to_string, to_value, from_value, Error, Mapping, Value};
+    pub use serde_yaml_ng::{from_str, from_value, to_string, to_value, Error, Mapping, Value};
 }
-
 
 /// `schemars` schema helper for arbitrary YAML values (`calo_schema::yaml::Value`).
 pub fn yaml_value_schema(_gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
@@ -48,7 +47,6 @@ pub fn yaml_map_schema(_gen: &mut schemars::gen::SchemaGenerator) -> schemars::s
     obj.object().additional_properties = Some(Box::new(schemars::schema::Schema::Bool(true)));
     schemars::schema::Schema::Object(obj)
 }
-
 
 /// Trait implemented by every top-level Calorimeter YAML document (spec §0.2).
 pub trait SchemaDoc: Sized {

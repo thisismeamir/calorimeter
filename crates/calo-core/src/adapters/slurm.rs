@@ -72,11 +72,7 @@ impl SlurmAdapter {
             let _ = writeln!(s, "#SBATCH --account={acct}");
         }
         let _ = writeln!(s, "#SBATCH --nodes={}", req.nodes.max(1));
-        let _ = writeln!(
-            s,
-            "#SBATCH --ntasks-per-node={}",
-            req.tasks_per_node.max(1)
-        );
+        let _ = writeln!(s, "#SBATCH --ntasks-per-node={}", req.tasks_per_node.max(1));
         if let Some(cpt) = req.cpus_per_task {
             let _ = writeln!(s, "#SBATCH --cpus-per-task={cpt}");
         }
@@ -112,10 +108,7 @@ impl SlurmAdapter {
     }
 
     /// Generates an `sbatch` script for a `batch: group` allocation containing multiple `srun` invocations (spec §15 step 6).
-    pub fn render_group_sbatch_script(
-        req: &SbatchRequest,
-        run_commands: &[Vec<String>],
-    ) -> String {
+    pub fn render_group_sbatch_script(req: &SbatchRequest, run_commands: &[Vec<String>]) -> String {
         let lines: Vec<String> = run_commands.iter().map(|argv| argv.join(" ")).collect();
         Self::render_sbatch_script(req, &lines)
     }
@@ -206,10 +199,11 @@ impl Adapter for SlurmAdapter {
                 name: out.stderr,
             });
         }
-        let job_id = Self::parse_sbatch_job_id(&out.stdout).map_err(|e| ExecError::MissingTarget {
-            kind: "job_id",
-            name: e.to_string(),
-        })?;
+        let job_id =
+            Self::parse_sbatch_job_id(&out.stdout).map_err(|e| ExecError::MissingTarget {
+                kind: "job_id",
+                name: e.to_string(),
+            })?;
         Ok(JobHandle {
             id: job_id,
             runspec_path: staged.runspec_path.clone(),

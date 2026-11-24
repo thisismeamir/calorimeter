@@ -208,19 +208,35 @@ impl TableWriter {
     }
 
     pub fn create_host_series(path: &Path, rel_path: impl Into<String>) -> io::Result<Self> {
-        Self::create(path, rel_path, Self::header_or_io("series.host", BTreeMap::new())?)
+        Self::create(
+            path,
+            rel_path,
+            Self::header_or_io("series.host", BTreeMap::new())?,
+        )
     }
 
     pub fn create_profile_samples(path: &Path, rel_path: impl Into<String>) -> io::Result<Self> {
-        Self::create(path, rel_path, Self::header_or_io("profile.samples", BTreeMap::new())?)
+        Self::create(
+            path,
+            rel_path,
+            Self::header_or_io("profile.samples", BTreeMap::new())?,
+        )
     }
 
     pub fn create_profile_chains(path: &Path, rel_path: impl Into<String>) -> io::Result<Self> {
-        Self::create(path, rel_path, Self::header_or_io("profile.chains", BTreeMap::new())?)
+        Self::create(
+            path,
+            rel_path,
+            Self::header_or_io("profile.chains", BTreeMap::new())?,
+        )
     }
 
     pub fn create_profile_maps(path: &Path, rel_path: impl Into<String>) -> io::Result<Self> {
-        Self::create(path, rel_path, Self::header_or_io("profile.maps", BTreeMap::new())?)
+        Self::create(
+            path,
+            rel_path,
+            Self::header_or_io("profile.maps", BTreeMap::new())?,
+        )
     }
 
     pub fn create_gpu_state(
@@ -229,32 +245,59 @@ impl TableWriter {
         device_index: u32,
     ) -> io::Result<Self> {
         let mut meta = BTreeMap::new();
-        meta.insert("device".to_string(), ScalarValue::Int(i64::from(device_index)));
+        meta.insert(
+            "device".to_string(),
+            ScalarValue::Int(i64::from(device_index)),
+        );
         Self::create(path, rel_path, Self::header_or_io("gpu.state", meta)?)
     }
 
     pub fn create_mpi_peers(path: &Path, rel_path: impl Into<String>) -> io::Result<Self> {
-        Self::create(path, rel_path, Self::header_or_io("mpi.peers", BTreeMap::new())?)
+        Self::create(
+            path,
+            rel_path,
+            Self::header_or_io("mpi.peers", BTreeMap::new())?,
+        )
     }
 
     pub fn create_mpi_collectives(path: &Path, rel_path: impl Into<String>) -> io::Result<Self> {
-        Self::create(path, rel_path, Self::header_or_io("mpi.collectives", BTreeMap::new())?)
+        Self::create(
+            path,
+            rel_path,
+            Self::header_or_io("mpi.collectives", BTreeMap::new())?,
+        )
     }
 
     pub fn create_mpi_trace(path: &Path, rel_path: impl Into<String>) -> io::Result<Self> {
-        Self::create(path, rel_path, Self::header_or_io("mpi.trace", BTreeMap::new())?)
+        Self::create(
+            path,
+            rel_path,
+            Self::header_or_io("mpi.trace", BTreeMap::new())?,
+        )
     }
 
     pub fn create_gpu_kernels(path: &Path, rel_path: impl Into<String>) -> io::Result<Self> {
-        Self::create(path, rel_path, Self::header_or_io("gpu.kernels", BTreeMap::new())?)
+        Self::create(
+            path,
+            rel_path,
+            Self::header_or_io("gpu.kernels", BTreeMap::new())?,
+        )
     }
 
     pub fn create_gpu_memcpy(path: &Path, rel_path: impl Into<String>) -> io::Result<Self> {
-        Self::create(path, rel_path, Self::header_or_io("gpu.memcpy", BTreeMap::new())?)
+        Self::create(
+            path,
+            rel_path,
+            Self::header_or_io("gpu.memcpy", BTreeMap::new())?,
+        )
     }
 
     pub fn create_gpu_counters(path: &Path, rel_path: impl Into<String>) -> io::Result<Self> {
-        Self::create(path, rel_path, Self::header_or_io("gpu.counters", BTreeMap::new())?)
+        Self::create(
+            path,
+            rel_path,
+            Self::header_or_io("gpu.counters", BTreeMap::new())?,
+        )
     }
 
     pub fn create_gpu_clock_correlation(
@@ -913,7 +956,10 @@ mod tests {
             }
             thread::sleep(Duration::from_millis(5));
         }
-        assert!(flushed, "flush_now_blocking must flush buffered block before finish");
+        assert!(
+            flushed,
+            "flush_now_blocking must flush buffered block before finish"
+        );
 
         let outcome = handle.finish().expect("finish");
         assert_eq!(outcome.sidecar.rows, 1);

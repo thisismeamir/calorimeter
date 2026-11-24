@@ -199,7 +199,10 @@ pub fn build_pivot_table(records: &[&Record], spec: &ReportTable) -> PivotTable 
 }
 
 /// Aggregates a slice of metric values across records using the metric's estimator suffix.
-pub(crate) fn aggregate_metric_across_records(records: &[&Record], metric_spec: &str) -> Option<f64> {
+pub(crate) fn aggregate_metric_across_records(
+    records: &[&Record],
+    metric_spec: &str,
+) -> Option<f64> {
     let (base_metric, agg_kind) = split_metric_estimator(metric_spec);
     let vals: Vec<f64> = records
         .iter()

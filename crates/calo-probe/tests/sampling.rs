@@ -1,5 +1,8 @@
 mod common;
-use calo_probe::sys::{record::Event, sample::{Sampler, Source}};
+use calo_probe::sys::{
+    record::Event,
+    sample::{Sampler, Source},
+};
 use common::{go, spawn_gated, wait};
 
 #[test]
@@ -25,7 +28,9 @@ fn samples_a_busy_child() {
             Event::Sample(x) => {
                 assert_ne!(x.ip, 0);
                 samples += 1;
-                if x.callchain.len() > 1 { deep += 1; }
+                if x.callchain.len() > 1 {
+                    deep += 1;
+                }
             }
             Event::Lost { count } => lost += count,
             Event::Mmap2(m) if !m.path.is_empty() => maps += 1,

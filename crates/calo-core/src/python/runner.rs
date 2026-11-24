@@ -39,7 +39,11 @@ pub fn detect_python(python_bin: &str, runner: &dyn CommandRunner) -> Result<Str
         Ok(out) if out.success() => Ok(out.stdout.trim().to_string()),
         Ok(out) => Err(ServiceError::PythonUnavailable {
             service: "python3".to_string(),
-            reason: format!("python3 check exited with {:?}: {}", out.exit_code, out.stderr.trim()),
+            reason: format!(
+                "python3 check exited with {:?}: {}",
+                out.exit_code,
+                out.stderr.trim()
+            ),
         }),
         Err(e) => Err(ServiceError::PythonUnavailable {
             service: "python3".to_string(),
@@ -67,7 +71,9 @@ pub fn run_python_service(
             .split_once(':')
             .ok_or_else(|| ServiceError::InvalidInput {
                 service: service_name.to_string(),
-                reason: format!("invalid python entrypoint `{entrypoint}` (expected `pkg.module:function`)"),
+                reason: format!(
+                    "invalid python entrypoint `{entrypoint}` (expected `pkg.module:function`)"
+                ),
             })?;
 
     detect_python(&cfg.python_bin, runner)?;
@@ -118,10 +124,12 @@ pub fn run_python_service(
 
     spec.env_remove = cfg.redact.clone();
 
-    let out = runner.run(&spec).map_err(|e| ServiceError::PythonUnavailable {
-        service: service_name.to_string(),
-        reason: e.to_string(),
-    })?;
+    let out = runner
+        .run(&spec)
+        .map_err(|e| ServiceError::PythonUnavailable {
+            service: service_name.to_string(),
+            reason: e.to_string(),
+        })?;
 
     if out.timed_out {
         return Err(ServiceError::PythonUnavailable {
@@ -132,11 +140,7 @@ pub fn run_python_service(
     if !out.success() {
         return Err(ServiceError::PythonUnavailable {
             service: service_name.to_string(),
-            reason: format!(
-                "exited with {:?}: {}",
-                out.exit_code,
-                out.stderr.trim()
-            ),
+            reason: format!("exited with {:?}: {}", out.exit_code, out.stderr.trim()),
         });
     }
 
@@ -208,10 +212,12 @@ pub fn run_python_plot(
     .with_timeout(Duration::from_secs(cfg.timeout_s.max(1)));
     spec.env_remove = cfg.redact.clone();
 
-    let out = runner.run(&spec).map_err(|e| ServiceError::PythonUnavailable {
-        service: plot_name.to_string(),
-        reason: e.to_string(),
-    })?;
+    let out = runner
+        .run(&spec)
+        .map_err(|e| ServiceError::PythonUnavailable {
+            service: plot_name.to_string(),
+            reason: e.to_string(),
+        })?;
     if out.timed_out || !out.success() {
         return Err(ServiceError::PythonUnavailable {
             service: plot_name.to_string(),
@@ -244,9 +250,7 @@ fn serialize_frame_typed_csv(
     let header_cells: Vec<String> = cols_to_write
         .iter()
         .map(|name| {
-            let t = frame
-                .column(name)
-                .map_or("str", Column::type_name);
+            let t = frame.column(name).map_or("str", Column::type_name);
             format!("{name}:{t}")
         })
         .collect();

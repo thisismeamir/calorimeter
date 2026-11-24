@@ -105,8 +105,7 @@ pub fn run_observe_loop(
                     if child.is_pidfd_fallback() {
                         // SIGCHLD self-pipe indicates some child exited; verify ours exited.
                         let mut scratch = [0u8; 64];
-                        let _ =
-                            crate::sys::channel::read_nonblocking(child.pidfd(), &mut scratch);
+                        let _ = crate::sys::channel::read_nonblocking(child.pidfd(), &mut scratch);
                         if !child_exited_nonblocking(child.pid()) {
                             continue;
                         }

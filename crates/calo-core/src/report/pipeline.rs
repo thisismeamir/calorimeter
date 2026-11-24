@@ -40,7 +40,10 @@ pub fn build_frame_from_records(records: &[&Record]) -> Result<Frame, ServiceErr
     }
 
     let run_ids: Vec<String> = records.iter().map(|r| r.identity.run_id.clone()).collect();
-    let benchmarks: Vec<String> = records.iter().map(|r| r.identity.benchmark.clone()).collect();
+    let benchmarks: Vec<String> = records
+        .iter()
+        .map(|r| r.identity.benchmark.clone())
+        .collect();
     frame.insert_column("run_id", Column::Str(run_ids))?;
     frame.insert_column("benchmark", Column::Str(benchmarks))?;
 
@@ -79,7 +82,14 @@ pub fn build_frame_from_records(records: &[&Record]) -> Result<Frame, ServiceErr
     }
 
     // Standard scalar metrics
-    for metric in ["wall_s", "user_cpu_s", "sys_cpu_s", "instructions", "cycles", "cache-misses"] {
+    for metric in [
+        "wall_s",
+        "user_cpu_s",
+        "sys_cpu_s",
+        "instructions",
+        "cycles",
+        "cache-misses",
+    ] {
         let vals: Vec<f64> = records
             .iter()
             .map(|r| extract_record_metric(r, metric).unwrap_or(f64::NAN))
@@ -155,7 +165,9 @@ pub fn run_analysis_pipeline(
             Err(ServiceError::MissingColumn { .. })
             | Err(ServiceError::NotYetImplemented { .. })
             | Err(ServiceError::PythonUnsupported { .. }) => {
-                notices.push(format!("skipped service `{svc_name}` (inputs unavailable or deferred)"));
+                notices.push(format!(
+                    "skipped service `{svc_name}` (inputs unavailable or deferred)"
+                ));
                 continue;
             }
             Err(e) => return Err(e),
@@ -172,7 +184,8 @@ pub fn run_analysis_pipeline(
             ScalarValue::Int(opts.ci.seed as i64),
         );
 
-        if let Ok(bytes) = encode_frame_as_calotbl(&format!("analysis.{svc_name}"), &out_frame, meta)
+        if let Ok(bytes) =
+            encode_frame_as_calotbl(&format!("analysis.{svc_name}"), &out_frame, meta)
         {
             if write_atomic_bytes(&out_path, &bytes).is_ok() {
                 written_tables.push(out_path);
@@ -291,7 +304,13 @@ pub fn generate_report_artifacts(
                         let _ = write_atomic_bytes(&svg_path, svg_str.as_bytes());
                         files.push(svg_path);
                     }
-                    svgs.push((p_def.title.clone().unwrap_or_else(|| p_def.plot_type.clone()), svg_str));
+                    svgs.push((
+                        p_def
+                            .title
+                            .clone()
+                            .unwrap_or_else(|| p_def.plot_type.clone()),
+                        svg_str,
+                    ));
                 }
             }
         }
@@ -311,14 +330,27 @@ pub fn generate_report_artifacts(
     }
 
     if report_def.output.is_empty() || report_def.output.contains(&ReportOutputFormat::Md) {
-        let md = render_markdown_report(&report_def.name, &md_tables, &gates, &context_blocks, &footer);
+        let md = render_markdown_report(
+            &report_def.name,
+            &md_tables,
+            &gates,
+            &context_blocks,
+            &footer,
+        );
         let md_path = reports_dir.join("report.md");
         let _ = write_atomic_bytes(&md_path, md.as_bytes());
         files.push(md_path);
     }
 
     if report_def.output.contains(&ReportOutputFormat::Html) {
-        let html = render_html_report(&report_def.name, &md_tables, &svgs, &gates, &context_blocks, &footer);
+        let html = render_html_report(
+            &report_def.name,
+            &md_tables,
+            &svgs,
+            &gates,
+            &context_blocks,
+            &footer,
+        );
         let html_path = reports_dir.join("report.html");
         let _ = write_atomic_bytes(&html_path, html.as_bytes());
         files.push(html_path);
@@ -403,11 +435,7 @@ fn render_markdown_report(
 
     let _ = writeln!(out, "## Provenance\n");
     let _ = writeln!(out, "- **Suite Hash:** `{}`", footer.suite_hash);
-    let _ = writeln!(
-        out,
-        "- **Probe Versions:** {:?}",
-        footer.probe_versions
-    );
+    let _ = writeln!(out, "- **Probe Versions:** {:?}", footer.probe_versions);
     let _ = writeln!(
         out,
         "- **Machine Fingerprints:** {:?}",
@@ -428,12 +456,20 @@ fn render_html_report(
 ) -> String {
     let mut html = String::new();
     html.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\"/>\n");
-    let _ = writeln!(html, "<title>Calorimeter Report: {}</title>", xml_escape(name));
+    let _ = writeln!(
+        html,
+        "<title>Calorimeter Report: {}</title>",
+        xml_escape(name)
+    );
     html.push_str("<style>\nbody { font-family: 'IBM Plex Sans', sans-serif; color: #161616; max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }\ntable { border-collapse: collapse; margin: 1rem 0; width: 100%; }\nth, td { border: 1px solid #c6c6c6; padding: 0.4rem 0.6rem; text-align: left; }\nth { background: #e0e0e0; }\n.pass { color: #161616; font-weight: 600; }\n.fail { color: #7017FF; font-weight: 700; }\npre { background: #f4f4f4; padding: 0.8rem; border: 1px solid #e0e0e0; overflow-x: auto; }\n</style>\n</head>\n<body>\n");
     let _ = writeln!(html, "<h1>Report: {}</h1>", xml_escape(name));
 
     for (title, svg_body) in svgs {
-        let _ = writeln!(html, "<h2>{}</h2>\n<div>{svg_body}</div>", xml_escape(title));
+        let _ = writeln!(
+            html,
+            "<h2>{}</h2>\n<div>{svg_body}</div>",
+            xml_escape(title)
+        );
     }
 
     for (label, md_tbl) in tables {
@@ -472,9 +508,17 @@ fn render_html_report(
     }
 
     html.push_str("<footer><h2>Provenance</h2><ul>\n");
-    let _ = writeln!(html, "<li>Suite Hash: <code>{}</code></li>", xml_escape(&footer.suite_hash));
+    let _ = writeln!(
+        html,
+        "<li>Suite Hash: <code>{}</code></li>",
+        xml_escape(&footer.suite_hash)
+    );
     let _ = writeln!(html, "<li>Probe Versions: {:?}</li>", footer.probe_versions);
-    let _ = writeln!(html, "<li>Machine Fingerprints: {:?}</li>", footer.machine_fingerprints);
+    let _ = writeln!(
+        html,
+        "<li>Machine Fingerprints: {:?}</li>",
+        footer.machine_fingerprints
+    );
     let _ = writeln!(html, "<li>Warnings: {:?}</li>", footer.warning_counts);
     let _ = writeln!(html, "<li>Excluded Runs: {:?}</li>", footer.excluded_runs);
     html.push_str("</ul></footer>\n</body>\n</html>\n");

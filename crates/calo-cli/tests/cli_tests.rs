@@ -18,14 +18,31 @@ fn valid_suite_passes_lint_and_plan() {
     let suite = fixture_path("valid_suite.yaml");
 
     let out = Command::new(calo_bin())
-        .args(["--inventory", inv.to_str().unwrap(), "--suite", suite.to_str().unwrap(), "lint"])
+        .args([
+            "--inventory",
+            inv.to_str().unwrap(),
+            "--suite",
+            suite.to_str().unwrap(),
+            "lint",
+        ])
         .output()
         .expect("run calo lint");
-    assert_eq!(out.status.code(), Some(0), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 
     // Check `calo plan` table output
     let plan_out = Command::new(calo_bin())
-        .args(["--inventory", inv.to_str().unwrap(), "--suite", suite.to_str().unwrap(), "plan"])
+        .args([
+            "--inventory",
+            inv.to_str().unwrap(),
+            "--suite",
+            suite.to_str().unwrap(),
+            "plan",
+        ])
         .output()
         .expect("run calo plan");
     assert_eq!(plan_out.status.code(), Some(0));
@@ -58,7 +75,13 @@ fn assert_lint_fails_with(fixture_name: &str, expected_substr: &str) {
     let suite = fixture_path(fixture_name);
 
     let out = Command::new(calo_bin())
-        .args(["--inventory", inv.to_str().unwrap(), "--suite", suite.to_str().unwrap(), "lint"])
+        .args([
+            "--inventory",
+            inv.to_str().unwrap(),
+            "--suite",
+            suite.to_str().unwrap(),
+            "lint",
+        ])
         .output()
         .expect("run calo lint");
 
@@ -80,20 +103,32 @@ fn lint_rejects_bad_schema_header() {
 
 #[test]
 fn lint_rejects_unknown_expression_reference() {
-    assert_lint_fails_with("bad_unknown_ref.yaml", "unknown reference `params.nonexistent_axis`");
+    assert_lint_fails_with(
+        "bad_unknown_ref.yaml",
+        "unknown reference `params.nonexistent_axis`",
+    );
 }
 
 #[test]
 fn lint_rejects_unknown_machine_build_step_patchset() {
-    assert_lint_fails_with("bad_unknown_names.yaml", "unknown machine `unknown-cluster`");
+    assert_lint_fails_with(
+        "bad_unknown_names.yaml",
+        "unknown machine `unknown-cluster`",
+    );
     assert_lint_fails_with("bad_unknown_names.yaml", "unknown build `missing_build`");
     assert_lint_fails_with("bad_unknown_names.yaml", "unknown step `missing_step`");
-    assert_lint_fails_with("bad_unknown_names.yaml", "unknown patch set `missing_patchset`");
+    assert_lint_fails_with(
+        "bad_unknown_names.yaml",
+        "unknown patch set `missing_patchset`",
+    );
 }
 
 #[test]
 fn lint_rejects_service_dependency_cycle() {
-    assert_lint_fails_with("bad_service_cycle.yaml", "service dependency cycle detected");
+    assert_lint_fails_with(
+        "bad_service_cycle.yaml",
+        "service dependency cycle detected",
+    );
 }
 
 #[test]

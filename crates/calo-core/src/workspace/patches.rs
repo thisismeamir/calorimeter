@@ -68,7 +68,9 @@ pub fn check_patchsets(
                     if let Err(msg) = check_version_req(req, resolved_versions) {
                         issues.push(LintIssue {
                             patchset: set_name.clone(),
-                            message: format!("patch `{patch_file}` requirement `{req}` unsatisfied: {msg}"),
+                            message: format!(
+                                "patch `{patch_file}` requirement `{req}` unsatisfied: {msg}"
+                            ),
                         });
                     }
                 }
@@ -118,7 +120,9 @@ fn check_version_req(
     if ok {
         Ok(())
     } else {
-        Err(format!("found `{pkg}` version `{actual_ver}`, required `{op} {req_ver}`"))
+        Err(format!(
+            "found `{pkg}` version `{actual_ver}`, required `{op} {req_ver}`"
+        ))
     }
 }
 

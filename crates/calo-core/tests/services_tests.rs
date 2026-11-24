@@ -45,7 +45,9 @@ fn scaling_fit_exact_strong_and_weak_data() {
     f_weak
         .insert_column("ranks", Column::Float(p_weak.to_vec()))
         .unwrap();
-    f_weak.insert_column("wall_s", Column::Float(t_weak)).unwrap();
+    f_weak
+        .insert_column("wall_s", Column::Float(t_weak))
+        .unwrap();
 
     let weak_opts = Options {
         scaling_kind: ScalingKind::Weak,
@@ -166,11 +168,15 @@ fn gpu_services_kernels_transfers_utilization_and_stubs() {
     assert_eq!(kh.column("calls").unwrap(), &Column::Int(vec![2, 1]));
 
     let mut memcpy = Frame::new();
-    memcpy.insert_column("kind", Column::Int(vec![0, 1])).unwrap();
+    memcpy
+        .insert_column("kind", Column::Int(vec![0, 1]))
+        .unwrap();
     memcpy
         .insert_column("bytes", Column::Int(vec![1_000_000_000, 500_000_000]))
         .unwrap();
-    memcpy.insert_column("start_ns", Column::Int(vec![0, 0])).unwrap();
+    memcpy
+        .insert_column("start_ns", Column::Int(vec![0, 0]))
+        .unwrap();
     memcpy
         .insert_column("end_ns", Column::Int(vec![1_000_000_000, 500_000_000]))
         .unwrap();
@@ -191,7 +197,15 @@ fn gpu_services_kernels_transfers_utilization_and_stubs() {
         .insert_column("util_pct", Column::Float(vec![50.0, 100.0, f64::NAN]))
         .unwrap();
     let gu = reg.run_service("gpu_utilization", &state).unwrap();
-    assert!((gu.column("mean_util_pct").unwrap().to_f64_vec("mean_util_pct").unwrap()[0] - 50.0).abs() < 1e-9);
+    assert!(
+        (gu.column("mean_util_pct")
+            .unwrap()
+            .to_f64_vec("mean_util_pct")
+            .unwrap()[0]
+            - 50.0)
+            .abs()
+            < 1e-9
+    );
 
     // Empty input returns clean error, never NaN
     let empty = Frame::new();

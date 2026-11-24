@@ -95,13 +95,14 @@ pub fn lint_files(
     let inv_src = fs::read_to_string(inventory_path).unwrap_or_default();
 
     // 1. Load & validate `inventory.yaml`
-    let inventory: Option<Inventory> = match load_and_parse_doc::<Inventory>(inventory_path, &inv_src, &[]) {
-        Ok(inv) => Some(inv),
-        Err(d) => {
-            diags.push(d);
-            None
-        }
-    };
+    let inventory: Option<Inventory> =
+        match load_and_parse_doc::<Inventory>(inventory_path, &inv_src, &[]) {
+            Ok(inv) => Some(inv),
+            Err(d) => {
+                diags.push(d);
+                None
+            }
+        };
 
     // 2. Load & validate `suite.yaml`
     let suite: Option<Suite> = match load_and_parse_doc::<Suite>(suite_path, &suite_src, cli_sets) {
@@ -298,7 +299,14 @@ fn check_benchmarks(
         // Check patch-set references if `patch` or `patchset` appears in `params` or `axes`
         if let Some(patches_cfg) = &suite.patches {
             if !patches_cfg.sets.is_empty() {
-                check_patch_values(bench, &patches_cfg.sets, suite_path, suite_src, bench_line, diags);
+                check_patch_values(
+                    bench,
+                    &patches_cfg.sets,
+                    suite_path,
+                    suite_src,
+                    bench_line,
+                    diags,
+                );
             }
         }
 
@@ -353,7 +361,11 @@ fn check_benchmarks(
         }
 
         // Check `where` expression and references
-        if let Some(where_src) = bench.filter_where.as_deref().or(bench.where_expr.as_deref()) {
+        if let Some(where_src) = bench
+            .filter_where
+            .as_deref()
+            .or(bench.where_expr.as_deref())
+        {
             let line = find_line_containing(suite_src, where_src).unwrap_or(bench_line);
             check_expression_refs(
                 where_src,
@@ -769,12 +781,10 @@ fn check_reports(
     for b in &suite.benchmarks {
         for mut rep in b.reports.clone() {
             if rep.select.is_none() {
-                rep.select = Some(ReportSelect::Single(
-                    calo_schema::suite::SelectorClause {
-                        benchmark: Some(b.name.clone()),
-                        ..Default::default()
-                    },
-                ));
+                rep.select = Some(ReportSelect::Single(calo_schema::suite::SelectorClause {
+                    benchmark: Some(b.name.clone()),
+                    ..Default::default()
+                }));
             }
             all_reports.push(rep);
         }
@@ -788,10 +798,7 @@ fn check_reports(
             .or_else(|| find_line_containing(suite_src, &rep.name))
             .unwrap_or(1);
 
-        let selector = rep
-            .select
-            .as_ref()
-            .map_or(Selector::All, Selector::from);
+        let selector = rep.select.as_ref().map_or(Selector::All, Selector::from);
 
         let mut matched_any = false;
         for bench in &suite.benchmarks {
@@ -801,8 +808,8 @@ fn check_reports(
                 Some(MachineTarget::Name(s)) => s.as_str(),
                 _ => "",
             };
-            let (mach_opt, node_opt) = resolve_machine_node(inventory, m_spec)
-                .map_or((None, None), |(m, n)| (Some(m), n));
+            let (mach_opt, node_opt) =
+                resolve_machine_node(inventory, m_spec).map_or((None, None), |(m, n)| (Some(m), n));
 
             let desc = RunDescriptor {
                 benchmark: &bench.name,

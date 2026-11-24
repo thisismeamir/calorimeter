@@ -2,12 +2,12 @@
 
 use crate::table::block::Block;
 use crate::table::error::TableError;
-use calo_schema::TableHeader;
 use calo_schema::tables::{
     validate_header, GpuClockCorrelationRow, GpuCounterRow, GpuKernelRow, GpuMemcpyRow,
     GpuStateRow, MpiCollectiveRow, MpiPeerRow, MpiTraceRow, ProfileChainRow, ProfileMapRow,
     ProfileSampleRow, SeriesHostRow,
 };
+use calo_schema::TableHeader;
 
 /// Trait implemented by typed `calo.table/1` row structs (spec §11).
 pub trait TableRow: Sized {
@@ -19,16 +19,17 @@ pub trait TableRow: Sized {
 }
 
 /// Validates `header` against `R::TABLE_NAME` and decodes all rows in `block` (spec §11).
-pub fn decode_rows<R: TableRow>(
-    block: &Block,
-    header: &TableHeader,
-) -> Result<Vec<R>, TableError> {
+pub fn decode_rows<R: TableRow>(block: &Block, header: &TableHeader) -> Result<Vec<R>, TableError> {
     validate_header(header)?;
     if header.table != R::TABLE_NAME {
         return Err(TableError::HeaderSchema(
             calo_schema::SchemaError::TableValidation {
                 table: header.table.clone(),
-                reason: format!("expected table `{}`, found `{}`", R::TABLE_NAME, header.table),
+                reason: format!(
+                    "expected table `{}`, found `{}`",
+                    R::TABLE_NAME,
+                    header.table
+                ),
             },
         ));
     }
