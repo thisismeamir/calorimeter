@@ -18,7 +18,7 @@
   - **MPI (`M0`–`M1`):** `--rank-aware` multi-rank isolation (`M0`), cross-rank aggregation (`min`/`mean`/`max`/`imbalance`), and a portable `LD_PRELOAD` PMPI shim (`M1`).
   - **GPU (`G0`):** out-of-process NVML discovery, utilization, VRAM, clocks, temperature, throttling, and integrated energy (J) loaded dynamically via `dlopen`.
 - **No root, no Python required:** Denied permissions degrade cleanly with structured `tier_degraded` warnings; built-in statistics, pivot tables, static SVG plots, HTML/Markdown reports, and regression gates are 100% native Rust.
-- **Workload-agnostic:** Built with [CosmoLattice](examples/cosmolattice/) as the reference target, with zero solver-specific code in the core.
+- **Workload-agnostic:** Ready to be used with anything that uses resources on a computer.
 
 ## Installation
 
