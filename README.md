@@ -1,9 +1,9 @@
 # Calorimeter
 
 [![CI](https://github.com/thisismeamir/calorimeter/actions/workflows/ci.yml/badge.svg)](https://github.com/thisismeamir/calorimeter/actions/workflows/ci.yml)
-[![Latest Release](https://img.shields.io/github/v/release/thisismeamir/calorimeter?color=7017FF)](https://github.com/thisismeamir/calorimeter/releases/latest)
-[![Documentation](https://readthedocs.org/projects/calorimeter/badge/?version=latest)](https://calorimeter.readthedocs.io/en/latest/)
-[![Rust](https://img.shields.io/badge/rust-stable-black?logo=rust)](https://www.rust-lang.org/)
+[![Release](https://img.shields.io/github/v/release/thisismeamir/calorimeter?color=7017FF)](https://github.com/thisismeamir/calorimeter/releases/latest)
+[![Documentation](https://app.readthedocs.org/projects/calorimeter/badge/?version=latest)](https://calorimeter.readthedocs.io/en/latest/)
+[![Rust](https://img.shields.io/badge/Rust-stable-black?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/github/license/thisismeamir/calorimeter)](LICENSE)
 
 **Calorimeter** is a reproducible benchmarking and profiling system for native CPU, multi-node MPI, and GPU programs. It discovers your hardware, expands declarative YAML suites into pinned runs, executes them locally or on Slurm clusters, records OS/PMU/GPU/MPI observations into immutable records and binary sidecars, and produces static reports, SVG plots, and regression gates.
