@@ -7,17 +7,20 @@ use std::{io, os::fd::RawFd};
 use crate::{
     channel::{ChannelAccumulator, ChannelEvent, ChannelFifo},
     clock::now_ns,
+    gpu::GpuStateCollector,
     profile::ProfileCollector,
     series::HostSampler,
     spawn::Child,
     sys::poll::{child_exited_nonblocking, Epoll, SignalGuard, TimerFd},
     table_writer::WriterHandle,
 };
+
 const TOK_PIDFD: u64 = 1;
 const TOK_CHANNEL: u64 = 2;
 const TOK_SERIES_TIMER: u64 = 3;
 const TOK_SIGNAL: u64 = 4;
 const TOK_TIMEOUT: u64 = 5;
+const TOK_GPU_TIMER: u64 = 6;
 const TOK_PROFILE_BASE: u64 = 100;
 const GRACE_NS: u64 = 5_000_000_000;
 
@@ -41,6 +44,8 @@ pub fn run_observe_loop(
     sample_hz: u32,
     timeout_s: Option<u64>,
     mut profile: Option<&mut ProfileCollector>,
+    mut gpu: Option<&mut GpuStateCollector>,
+    gpu_sample_hz: u32,
 ) -> io::Result<ObserveOutcome> {
     let epoll = Epoll::new()?;
     let read_mask = libc::EPOLLIN as u32;
@@ -63,6 +68,16 @@ pub fn run_observe_loop(
         None
     };
 
+    let gpu_timer = if gpu.is_some() {
+        let t = TimerFd::new_monotonic()?;
+        let gpu_period_ns = 1_000_000_000u64 / u64::from(gpu_sample_hz.max(1));
+        t.arm_periodic_ns(gpu_period_ns)?;
+        epoll.add(t.as_raw_fd(), TOK_GPU_TIMER, read_mask)?;
+        Some(t)
+    } else {
+        None
+    };
+
     let profile_fds: Vec<RawFd> = if let Some(ref prof) = profile {
         let fds = prof.raw_fds();
         for (idx, &fd) in fds.iter().enumerate() {
@@ -72,6 +87,7 @@ pub fn run_observe_loop(
     } else {
         Vec::new()
     };
+
     let mut events = [libc::epoll_event { events: 0, u64: 0 }; 16];
     let mut channel_buf: Vec<ChannelEvent> = Vec::with_capacity(256);
     let mut timed_out = false;
@@ -89,7 +105,8 @@ pub fn run_observe_loop(
                     if child.is_pidfd_fallback() {
                         // SIGCHLD self-pipe indicates some child exited; verify ours exited.
                         let mut scratch = [0u8; 64];
-                        let _ = crate::sys::channel::read_nonblocking(child.pidfd(), &mut scratch);
+                        let _ =
+                            crate::sys::channel::read_nonblocking(child.pidfd(), &mut scratch);
                         if !child_exited_nonblocking(child.pid()) {
                             continue;
                         }
@@ -133,10 +150,17 @@ pub fn run_observe_loop(
                         }
                     }
                 }
-
-                tok if tok >= TOK_PROFILE_BASE => {
+                TOK_GPU_TIMER => {
+                    if let Some(ref t) = gpu_timer {
+                        let _ = t.drain();
+                    }
+                    if let Some(ref mut g) = gpu {
+                        g.sample_all(now_ns());
+                    }
+                }
+                t if t >= TOK_PROFILE_BASE => {
                     if let Some(ref mut prof) = profile {
-                        let idx = (tok - TOK_PROFILE_BASE) as usize;
+                        let idx = (t - TOK_PROFILE_BASE) as usize;
                         if let Some(&fd) = profile_fds.get(idx) {
                             prof.drain_fd(Some(fd));
                         }

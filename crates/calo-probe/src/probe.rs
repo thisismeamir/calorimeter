@@ -1,4 +1,4 @@
-//! `Probe::run` 8-step state machine for T0 execution, record assembly, and atomic write
+//! `Probe::run` 8-step state machine for T0/T1/G0/M0 execution, record assembly, and atomic write
 //! (Spec §9.0–§9.2, §10).
 
 #![forbid(unsafe_code)]
@@ -15,7 +15,8 @@ use std::{
 
 use calo_schema::{
     common::{
-        CpuTier, Mode, MpiTier, RegionStorageMode, Status, TiersActive, Warning, WarningCode,
+        CpuTier, GpuTier, Mode, MpiTier, RegionStorageMode, Status, TiersActive, Warning,
+        WarningCode,
     },
     discovery::ObservedHardware,
     record::{
@@ -32,6 +33,7 @@ use crate::{
     channel::{ChannelAccumulator, ChannelFifo, RegionMode, RegionNode},
     clock::{now_ns, realtime_rfc3339},
     counters::{check_mux_warning, CounterAlias, CounterScope, CounterSet},
+    gpu::GpuStateCollector,
     observe::run_observe_loop,
     profile::{ProfileCollector, ProfileConfig},
     scalars::{merge_peak_rss, CgroupSnapshot},
@@ -86,6 +88,7 @@ impl Probe {
             .map_err(|e| ProbeError::InvalidRunSpec(e.to_string()))?;
         let out_dir = PathBuf::from(&spec.outputs.dir);
         fs::create_dir_all(&out_dir)?;
+
         let rank_ctx = resolve_rank_context(spec, opts);
         let multi_rank = rank_ctx.ranks > 1 || rank_ctx.rank > 0;
         let fifo_name = if multi_rank {
@@ -98,6 +101,7 @@ impl Probe {
         } else {
             "series.host.calotbl".to_string()
         };
+
         // 2. Signals: block SIGTERM/SIGINT/SIGHUP before spawning any threads (including
         // the writer thread) or forking, so process-directed signals go only to signalfd.
         let sig_guard = SignalGuard::block_termination_signals()?;
@@ -121,7 +125,7 @@ impl Probe {
         let setup = build_child_setup(spec, channel.path())?;
         let mut child = spawn_gated(&setup)?;
 
-        // 4. Arm counters & host sampler before `go()`.
+        // 4. Arm counters, host sampler, optional T1 profile collector, and optional G0 GPU collector.
         let mut counter_set = CounterSet::open_with_overrides(
             child.pid(),
             &requested_aliases,
@@ -150,6 +154,7 @@ impl Probe {
         } else {
             None
         };
+
         let raw_hz = spec.sample_hz.unwrap_or(10).max(1);
         let sample_hz = opts
             .max_sample_hz
@@ -158,6 +163,27 @@ impl Probe {
         // 5. Exec (`wall_s` includes `execvpe` latency from `go_ns` to `exit_ns`).
         let go_ns = now_ns();
         let mut warnings: Vec<Warning> = counter_set.warnings().to_vec();
+        let gpu_requested = spec.gpu.as_ref().and_then(|g| g.state) == Some(true);
+        let gpu_sample_hz = spec
+            .gpu
+            .as_ref()
+            .and_then(|g| g.sample_hz)
+            .unwrap_or(10)
+            .max(1);
+        let mut gpu_collector = if gpu_requested {
+            match GpuStateCollector::open(&out_dir, rank_ctx.rank)? {
+                Some(g) => Some(g),
+                None => {
+                    warnings.push(Warning {
+                        code: WarningCode::TierDegraded,
+                        message: "GPU G0 state requested but NVML/GPU unavailable".to_string(),
+                    });
+                    None
+                }
+            }
+        } else {
+            None
+        };
         let mut errors: Vec<Warning> = Vec::new();
 
         let (
@@ -200,6 +226,9 @@ impl Probe {
                 sampler.rebase();
 
                 // 6. Observe
+                if let Some(ref mut g) = gpu_collector {
+                    g.sample_all(now_ns());
+                }
                 let obs = run_observe_loop(
                     &child,
                     &mut channel,
@@ -210,7 +239,12 @@ impl Probe {
                     sample_hz,
                     opts.timeout_s,
                     profile_collector.as_mut(),
+                    gpu_collector.as_mut(),
+                    gpu_sample_hz,
                 )?;
+                if let Some(ref mut g) = gpu_collector {
+                    g.sample_all(obs.exit_ns);
+                }
 
                 // 7. Reap: final sample while zombie is still in /proc, then wait4.
                 if let Some(row) = sampler.sample() {
@@ -267,6 +301,7 @@ impl Probe {
                 (None, true)
             }
         };
+
         let (profile_obs, profile_callgraph, profile_sample_loss, profile_invalid) =
             if let Some(mut prof) = profile_collector {
                 let exe_path = Path::new(&spec.command[0]);
@@ -299,6 +334,24 @@ impl Probe {
                 (None, None, None, false)
             };
 
+        let (gpu_obs, gpu_energy_j) = if let Some(g) = gpu_collector {
+            match g.finish() {
+                Ok(summary) => {
+                    warnings.extend(summary.warnings);
+                    (Some(summary.record_gpu), summary.total_energy_j)
+                }
+                Err(e) => {
+                    errors.push(Warning {
+                        code: WarningCode::TraceOverflow,
+                        message: format!("gpu.state sidecar finalization failed: {e}"),
+                    });
+                    (None, None)
+                }
+            }
+        } else {
+            (None, None)
+        };
+
         let final_status = if writer_dead || profile_invalid {
             Status::Invalid
         } else {
@@ -325,7 +378,7 @@ impl Probe {
             let ej = EnergyJoules {
                 pkg: energy.pkg,
                 dram: energy.dram,
-                gpu: None,
+                gpu: gpu_energy_j,
             };
             (!ej.is_empty()).then_some(ej)
         };
@@ -461,12 +514,13 @@ impl Probe {
         };
 
         // Tiers active: T0 always active; T2 enabled when channel/tags observations are populated
-        // so `Record::tier_authoritative_check` succeeds (see Ambiguities).
+        // so `Record::tier_authoritative_check` succeeds.
         let tiers_active = TiersActive {
             cpu: Some(CpuTier::T2),
             mpi: rank_ctx.rank_aware.then_some(MpiTier::M0),
-            gpu: None,
+            gpu: gpu_obs.as_ref().map(|_| GpuTier::G0),
         };
+
         let record = Record {
             schema: Record::SCHEMA.to_string(),
             identity: RecordIdentity {
@@ -515,7 +569,7 @@ impl Probe {
                 series,
                 profile: profile_obs,
                 mpi: None,
-                gpu: None,
+                gpu: gpu_obs,
             },
             provenance: RecordProvenance {
                 probe_version: env!("CARGO_PKG_VERSION").to_string(),
@@ -539,12 +593,13 @@ impl Probe {
             aggregate: None,
         };
 
-        // 8. Finalize: validate and write atomically (`rank0.yaml.tmp` -> fsync -> rename -> fsync dir).
+        // 8. Finalize: validate and write atomically (`rank<k>.yaml.tmp` -> fsync -> rename -> fsync dir).
         record
             .check()
             .map_err(|e| ProbeError::RecordValidation(e.to_string()))?;
 
-        let record_path = out_dir.join(format!("rank{}.yaml", rank_ctx.rank));        let yaml = serde_yaml_ng::to_string(&record)
+        let record_path = out_dir.join(format!("rank{}.yaml", rank_ctx.rank));
+        let yaml = calo_schema::yaml::to_string(&record)
             .map_err(|e| ProbeError::RecordValidation(e.to_string()))?;
         write_atomic(&record_path, yaml.as_bytes())?;
 
