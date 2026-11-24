@@ -166,6 +166,7 @@ dependencies = [
 name = "calo-probe"
 version = "0.1.0"
 dependencies = [
+ "calo-channel",
  "calo-core",
  "calo-schema",
  "libc",
