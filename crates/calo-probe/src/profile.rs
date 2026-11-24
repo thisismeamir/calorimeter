@@ -16,7 +16,7 @@ use calo_schema::{
     common::{CallgraphMethod, Warning, WarningCode},
     record::{ProfileModule, RecordProfile},
     table::Sidecar,
-    tables::{self, ProfileChainRow, ProfileMapRow, ProfileSampleRow},
+    tables::{ProfileChainRow, ProfileMapRow, ProfileSampleRow},
 };
 
 use crate::{
@@ -24,7 +24,7 @@ use crate::{
     sys::{
         record::{
             decode_with_config, Event, Sample, SAMPLE_CALLCHAIN, SAMPLE_CPU, SAMPLE_IP,
-            SAMPLE_REGS_USER, SAMPLE_STACK_USER, SAMPLE_TIME, SAMPLE_TID, SAMPLE_TYPE,
+            SAMPLE_REGS_USER, SAMPLE_STACK_USER, SAMPLE_TID, SAMPLE_TIME, SAMPLE_TYPE,
         },
         sample::{CallgraphConfig, SampleTrigger, Sampler, Source},
     },
@@ -187,15 +187,24 @@ impl ProfileCollector {
         }
 
         let samples_writer = WriterHandle::spawn(
-            TableWriter::create_profile_samples(&out_dir.join("profile.samples.calotbl"), "profile.samples.calotbl")?,
+            TableWriter::create_profile_samples(
+                &out_dir.join("profile.samples.calotbl"),
+                "profile.samples.calotbl",
+            )?,
             4096,
         );
         let chains_writer = WriterHandle::spawn(
-            TableWriter::create_profile_chains(&out_dir.join("profile.chains.calotbl"), "profile.chains.calotbl")?,
+            TableWriter::create_profile_chains(
+                &out_dir.join("profile.chains.calotbl"),
+                "profile.chains.calotbl",
+            )?,
             8192,
         );
         let maps_writer = WriterHandle::spawn(
-            TableWriter::create_profile_maps(&out_dir.join("profile.maps.calotbl"), "profile.maps.calotbl")?,
+            TableWriter::create_profile_maps(
+                &out_dir.join("profile.maps.calotbl"),
+                "profile.maps.calotbl",
+            )?,
             1024,
         );
 
@@ -261,12 +270,12 @@ impl ProfileCollector {
             let rc = self.attr_samplers[idx].regs_count;
             let ev_id = self.attr_samplers[idx].event_id.clone();
             let mut batch = Vec::new();
-            match self.attr_samplers[idx]
-                .sampler
-                .drain_raw(|rec| match decode_with_config(rec, st, rc) {
+            match self.attr_samplers[idx].sampler.drain_raw(|rec| {
+                match decode_with_config(rec, st, rc) {
                     Ok(ev) => batch.push(ev),
                     Err(_) => self.decode_errors += 1,
-                }) {
+                }
+            }) {
                 Ok(_) => {
                     for ev in batch {
                         self.handle_event(ev, Some(&ev_id));
@@ -283,14 +292,14 @@ impl ProfileCollector {
             Event::Mmap2(m) => {
                 let build_id = self.cached_build_id(&m.path);
                 if (m.prot & PROT_EXEC) != 0 && !m.path.is_empty() && !m.path.starts_with('[') {
-                    self.modules.entry((m.path.clone(), m.addr)).or_insert_with(|| {
-                        ProfileModule {
+                    self.modules
+                        .entry((m.path.clone(), m.addr))
+                        .or_insert_with(|| ProfileModule {
                             path: m.path.clone(),
                             build_id: build_id.clone(),
                             base: m.addr,
                             size: m.len,
-                        }
-                    });
+                        });
                 }
                 self.maps_writer.send_profile_map(ProfileMapRow {
                     pid: m.pid as i32,
@@ -363,8 +372,12 @@ impl ProfileCollector {
     pub fn finish(mut self, has_symbols: bool) -> io::Result<ProfileSummary> {
         self.drain_fd(None);
 
-        let _ = self.samples_writer.flush_now_blocking(Duration::from_secs(1));
-        let _ = self.chains_writer.flush_now_blocking(Duration::from_secs(1));
+        let _ = self
+            .samples_writer
+            .flush_now_blocking(Duration::from_secs(1));
+        let _ = self
+            .chains_writer
+            .flush_now_blocking(Duration::from_secs(1));
         let _ = self.maps_writer.flush_now_blocking(Duration::from_secs(1));
 
         let samples_out = self.samples_writer.finish()?;
@@ -481,9 +494,15 @@ pub fn parse_elf_build_id(bytes: &[u8]) -> Option<String> {
             continue;
         }
         let (data_off, data_len) = if class == 2 {
-            (u64_le(bytes, off + 8)? as usize, u64_le(bytes, off + 32)? as usize)
+            (
+                u64_le(bytes, off + 8)? as usize,
+                u64_le(bytes, off + 32)? as usize,
+            )
         } else {
-            (u32_le(bytes, off + 4)? as usize, u32_le(bytes, off + 16)? as usize)
+            (
+                u32_le(bytes, off + 4)? as usize,
+                u32_le(bytes, off + 16)? as usize,
+            )
         };
         if let Some(end) = data_off.checked_add(data_len) {
             if let Some(slice) = bytes.get(data_off..end) {
@@ -562,9 +581,15 @@ fn parse_elf_has_symbols_inner(bytes: &[u8]) -> Option<bool> {
     let strtab_slice = if shstrndx < shnum {
         let str_off = shoff.checked_add(shstrndx.checked_mul(shentsize)?)?;
         let (off, len) = if class == 2 {
-            (u64_le(bytes, str_off + 24)? as usize, u64_le(bytes, str_off + 32)? as usize)
+            (
+                u64_le(bytes, str_off + 24)? as usize,
+                u64_le(bytes, str_off + 32)? as usize,
+            )
         } else {
-            (u32_le(bytes, str_off + 16)? as usize, u32_le(bytes, str_off + 20)? as usize)
+            (
+                u32_le(bytes, str_off + 16)? as usize,
+                u32_le(bytes, str_off + 20)? as usize,
+            )
         };
         off.checked_add(len).and_then(|end| bytes.get(off..end))
     } else {
@@ -670,7 +695,8 @@ mod tests {
         let mut elf = minimal_elf64_with_build_id_note(&[1, 2, 3, 4]);
         assert!(!parse_elf_has_symbols(&elf));
         // Flip section 1 sh_type from 7 (SHT_NOTE) to 2 (SHT_SYMTAB).
-        let sh1_off = 64 + 16 + 64;
+        let shoff = u64_le(&elf, 40).unwrap() as usize;
+        let sh1_off = shoff + 64;
         elf[sh1_off + 4..sh1_off + 8].copy_from_slice(&2u32.to_le_bytes());
         assert!(parse_elf_has_symbols(&elf));
     }

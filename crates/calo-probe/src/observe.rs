@@ -2,22 +2,23 @@
 
 #![forbid(unsafe_code)]
 
-use std::io;
+use std::{io, os::fd::RawFd};
 
 use crate::{
     channel::{ChannelAccumulator, ChannelEvent, ChannelFifo},
     clock::now_ns,
+    profile::ProfileCollector,
     series::HostSampler,
     spawn::Child,
     sys::poll::{child_exited_nonblocking, Epoll, SignalGuard, TimerFd},
     table_writer::WriterHandle,
 };
-
 const TOK_PIDFD: u64 = 1;
 const TOK_CHANNEL: u64 = 2;
 const TOK_SERIES_TIMER: u64 = 3;
 const TOK_SIGNAL: u64 = 4;
 const TOK_TIMEOUT: u64 = 5;
+const TOK_PROFILE_BASE: u64 = 100;
 const GRACE_NS: u64 = 5_000_000_000;
 
 /// Outcome of the observe loop when the child exits.
@@ -39,6 +40,7 @@ pub fn run_observe_loop(
     sig_guard: &SignalGuard,
     sample_hz: u32,
     timeout_s: Option<u64>,
+    mut profile: Option<&mut ProfileCollector>,
 ) -> io::Result<ObserveOutcome> {
     let epoll = Epoll::new()?;
     let read_mask = libc::EPOLLIN as u32;
@@ -61,9 +63,15 @@ pub fn run_observe_loop(
         None
     };
 
-    // P7: register CPU profile sampler ring fd here.
-    // P10: register GPU state sampling timerfd here.
-
+    let profile_fds: Vec<RawFd> = if let Some(ref prof) = profile {
+        let fds = prof.raw_fds();
+        for (idx, &fd) in fds.iter().enumerate() {
+            epoll.add(fd, TOK_PROFILE_BASE + idx as u64, read_mask)?;
+        }
+        fds
+    } else {
+        Vec::new()
+    };
     let mut events = [libc::epoll_event { events: 0, u64: 0 }; 16];
     let mut channel_buf: Vec<ChannelEvent> = Vec::with_capacity(256);
     let mut timed_out = false;
@@ -73,7 +81,8 @@ pub fn run_observe_loop(
     loop {
         let n = epoll.wait(&mut events, -1)?;
         for ev in &events[..n] {
-            match ev.u64 {
+            let tok = ev.u64;
+            match tok {
                 TOK_PIDFD => {
                     // Capture exit timestamp FIRST before any draining or reaping.
                     let exit_ns = now_ns();
@@ -121,6 +130,15 @@ pub fn run_observe_loop(
                             let _ = t.arm_oneshot_ns(GRACE_NS);
                         } else {
                             let _ = child.kill_group(libc::SIGKILL);
+                        }
+                    }
+                }
+
+                tok if tok >= TOK_PROFILE_BASE => {
+                    if let Some(ref mut prof) = profile {
+                        let idx = (tok - TOK_PROFILE_BASE) as usize;
+                        if let Some(&fd) = profile_fds.get(idx) {
+                            prof.drain_fd(Some(fd));
                         }
                     }
                 }

@@ -29,6 +29,8 @@ pub struct Sample {
     /// Raw callchain including context markers (>= 0xffff_ffff_ffff_f001).
     /// Filtering is the control plane's job.
     pub callchain: Vec<u64>,
+    /// Optional user register and stack snapshot when DWARF unwinding is enabled
+    pub dwarf: Option<DwarfStack>,
 }
 
 
@@ -89,8 +91,18 @@ fn cstr(b: &[u8]) -> String {
     String::from_utf8_lossy(&b[..end]).into_owned()
 }
 
-/// Decode one complete record (8-byte header included).
+/// Decode one complete record using the default FP `SAMPLE_TYPE` layout.
 pub fn decode(rec: &[u8]) -> Result<Event, DecodeError> {
+    decode_with_config(rec, SAMPLE_TYPE, 0)
+}
+
+/// Decode one complete record (8-byte header included) for an explicit `sample_type`
+/// and expected `regs_count` (number of 1-bits in `perf_event_attr.sample_regs_user`).
+pub fn decode_with_config(
+    rec: &[u8],
+    sample_type: u64,
+    regs_count: usize,
+) -> Result<Event, DecodeError> {
     let ty = u32n(rec, 0)?;
     let size = u16n(rec, 6)? as usize;
     if rec.len() < size {
@@ -99,22 +111,101 @@ pub fn decode(rec: &[u8]) -> Result<Event, DecodeError> {
     let rec = &rec[..size];
     Ok(match ty {
         PERF_RECORD_SAMPLE => {
-            let nr = u64n(rec, 40)? as usize;
-            let need = 48 + nr * 8;
-            if rec.len() < need {
-                return Err(DecodeError::Truncated { need, have: rec.len() });
-            }
-            let mut callchain = Vec::with_capacity(nr);
-            for i in 0..nr {
-                callchain.push(u64n(rec, 48 + i * 8)?);
-            }
+            let mut off = 8usize;
+            let ip = if (sample_type & SAMPLE_IP) != 0 {
+                let v = u64n(rec, off)?;
+                off += 8;
+                v
+            } else {
+                0
+            };
+            let (pid, tid) = if (sample_type & SAMPLE_TID) != 0 {
+                let p = u32n(rec, off)?;
+                let t = u32n(rec, off + 4)?;
+                off += 8;
+                (p, t)
+            } else {
+                (0, 0)
+            };
+            let time_ns = if (sample_type & SAMPLE_TIME) != 0 {
+                let v = u64n(rec, off)?;
+                off += 8;
+                v
+            } else {
+                0
+            };
+            let cpu = if (sample_type & SAMPLE_CPU) != 0 {
+                let c = u32n(rec, off)?;
+                off += 8; // u32 cpu + u32 res
+                c
+            } else {
+                0
+            };
+            let callchain = if (sample_type & SAMPLE_CALLCHAIN) != 0 {
+                let nr = u64n(rec, off)? as usize;
+                off += 8;
+                let bytes = nr.saturating_mul(8);
+                let need = off.saturating_add(bytes);
+                if rec.len() < need {
+                    return Err(DecodeError::Truncated { need, have: rec.len() });
+                }
+                let mut cc = Vec::with_capacity(nr);
+                for i in 0..nr {
+                    cc.push(u64n(rec, off + i * 8)?);
+                }
+                off = need;
+                cc
+            } else {
+                Vec::new()
+            };
+
+            let wants_dwarf = (sample_type & (SAMPLE_REGS_USER | SAMPLE_STACK_USER)) != 0;
+            let dwarf = if wants_dwarf {
+                let mut abi = 0u64;
+                let mut regs = Vec::new();
+                if (sample_type & SAMPLE_REGS_USER) != 0 {
+                    abi = u64n(rec, off)?;
+                    off += 8;
+                    if abi != 0 {
+                        let bytes = regs_count.saturating_mul(8);
+                        let need = off.saturating_add(bytes);
+                        if rec.len() < need {
+                            return Err(DecodeError::Truncated { need, have: rec.len() });
+                        }
+                        regs.reserve(regs_count);
+                        for i in 0..regs_count {
+                            regs.push(u64n(rec, off + i * 8)?);
+                        }
+                        off = need;
+                    }
+                }
+                let mut stack = Vec::new();
+                if (sample_type & SAMPLE_STACK_USER) != 0 {
+                    let stack_size = u64n(rec, off)? as usize;
+                    off += 8;
+                    if stack_size > 0 {
+                        let data_end = off.saturating_add(stack_size);
+                        let need = data_end.saturating_add(8); // trailing dyn_size
+                        if rec.len() < need {
+                            return Err(DecodeError::Truncated { need, have: rec.len() });
+                        }
+                        let dyn_size = (u64n(rec, data_end)? as usize).min(stack_size);
+                        stack.extend_from_slice(&rec[off..off + dyn_size]);
+                    }
+                }
+                Some(DwarfStack { abi, regs, stack })
+            } else {
+                None
+            };
+
             Event::Sample(Sample {
-                ip: u64n(rec, 8)?,
-                pid: u32n(rec, 16)?,
-                tid: u32n(rec, 20)?,
-                time_ns: u64n(rec, 24)?,
-                cpu: u32n(rec, 32)?,
+                ip,
+                pid,
+                tid,
+                time_ns,
+                cpu,
                 callchain,
+                dwarf,
             })
         }
         PERF_RECORD_MMAP2 => {

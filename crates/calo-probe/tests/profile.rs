@@ -55,7 +55,7 @@ fn t1_collector_captures_maps_and_attribute_samples() {
         strict_loss: false,
     };
 
-    let mut collector = ProfileCollector::open(child.pid(), cfg, &dir).expect("open collector");
+    let collector = ProfileCollector::open(child.pid(), cfg, &dir).expect("open collector");
     if collector.raw_fds().is_empty() {
         eprintln!(
             "SKIPPED t1_collector_captures_maps_and_attribute_samples: perf sampling denied ({:?})",

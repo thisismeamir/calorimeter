@@ -4,7 +4,7 @@
 #![forbid(unsafe_code)]
 
 use std::{
-    collections::BTreeMap,
+    collections::{btree_map::Entry, BTreeMap},
     fs, io,
     os::fd::{AsRawFd, OwnedFd, RawFd},
     path::{Path, PathBuf},
@@ -311,8 +311,13 @@ pub struct ChannelFifo {
 impl ChannelFifo {
     /// Creates `<outputs_dir>/channel.fifo` (mode 0600) and opens non-blocking read + dummy write fds.
     pub fn create(outputs_dir: &Path) -> io::Result<Self> {
+        Self::create_named(outputs_dir, "channel.fifo")
+    }
+
+    /// Creates `<outputs_dir>/<filename>` (mode 0600) so concurrent ranks do not collide.
+    pub fn create_named(outputs_dir: &Path, filename: &str) -> io::Result<Self> {
         fs::create_dir_all(outputs_dir)?;
-        let path = outputs_dir.join("channel.fifo");
+        let path = outputs_dir.join(filename);
         let (read_fd, write_fd) = open_channel_fifo(&path)?;
         Ok(Self {
             path,
@@ -321,7 +326,6 @@ impl ChannelFifo {
             reader: ChannelReader::new(),
         })
     }
-
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -438,12 +442,17 @@ impl ChannelAccumulator {
         match ev {
             ChannelEvent::Phase { name, start, t_ns } => {
                 if start {
-                    if self.open_phases.contains_key(&name) {
-                        self.record_protocol_error(format!(
-                            "repeated phase '{name} start' while already open"
-                        ));
-                    } else {
-                        self.open_phases.insert(name, t_ns);
+                    match self.open_phases.entry(name) {
+                        Entry::Occupied(occ) => {
+                            let msg = format!(
+                                "repeated phase '{} start' while already open",
+                                occ.key()
+                            );
+                            self.record_protocol_error(msg);
+                        }
+                        Entry::Vacant(vac) => {
+                            vac.insert(t_ns);
+                        }
                     }
                 } else if let Some(s) = self.open_phases.remove(&name) {
                     self.phases

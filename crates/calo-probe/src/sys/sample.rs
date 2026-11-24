@@ -1,5 +1,5 @@
 // I8: unsafe is confined to this file and perf.rs.
-use super::record::{decode, Event, SAMPLE_TYPE};
+use super::record::{decode, Event, SAMPLE_TYPE, SAMPLE_REGS_USER, SAMPLE_STACK_USER};
 use perf_event_open_sys as sys;
 use std::{
     io,
@@ -20,6 +20,42 @@ pub enum RingError {
 pub enum Source {
     Cycles,
     CpuClock,
+}
+
+/// Sampling trigger: target frequency (Hz) or fixed event overflow period.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SampleTrigger {
+    Freq(u64),
+    Period(u64),
+}
+
+/// Callgraph capture configuration (Spec §9.3 B8).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CallgraphConfig {
+    Fp,
+    Dwarf { stack_bytes: u32 },
+}
+
+/// Architecture-valid `perf_event_attr.sample_regs_user` bitmask.
+/// On x86_64, segment registers (bits 12..=15: DS/ES/FS/GS) are rejected with `EINVAL`.
+pub const fn default_user_regs_mask() -> u64 {
+    #[cfg(target_arch = "x86_64")]
+    {
+        0x00ff_0fff // AX..SS (bits 0..=11) + R8..R15 (bits 16..=23) = 20 regs
+    }
+    #[cfg(target_arch = "aarch64")]
+    {
+        0x0000_0001_ffff_ffff // X0..X30, SP, PC = 33 regs
+    }
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    {
+        0
+    }
+}
+
+/// Number of user registers captured when DWARF sampling is active.
+pub const fn default_user_regs_count() -> usize {
+    default_user_regs_mask().count_ones() as usize
 }
 
 /// Mapped perf buffer: 1 metadata page + 2^n data pages.
@@ -127,34 +163,80 @@ pub struct Sampler {
 }
 
 impl Sampler {
-    /// Open a sampling event on `pid`. Disabled until the child execs.
-    /// `pages_log2` = log2 of data pages (6 -> 256 KiB with 4 KiB pages).
+    /// Open a sampling event on `pid` with FP callchains at `freq_hz`.
+    /// Disabled until the child execs. `pages_log2` = log2 of data pages.
     pub fn open(
         pid: libc::pid_t,
         source: Source,
         freq_hz: u64,
         pages_log2: u32,
     ) -> io::Result<Self> {
-        // SAFETY: sysconf has no preconditions.
-        let page = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as usize;
-        let data_size = page << pages_log2;
+        Self::open_configured(
+            pid,
+            source,
+            SampleTrigger::Freq(freq_hz),
+            pages_log2,
+            CallgraphConfig::Fp,
+        )
+    }
 
+    /// Open a sampling event for `source` with explicit `trigger` and `callgraph`.
+    pub fn open_configured(
+        pid: libc::pid_t,
+        source: Source,
+        trigger: SampleTrigger,
+        pages_log2: u32,
+        callgraph: CallgraphConfig,
+    ) -> io::Result<Self> {
         let (type_, config) = match source {
             Source::Cycles => (PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES as u64),
             Source::CpuClock => (PERF_TYPE_SOFTWARE, PERF_COUNT_SW_CPU_CLOCK as u64),
         };
+        Self::open_raw_configured(pid, type_, config, trigger, pages_log2, callgraph)
+    }
 
+    /// Open a sampling event with explicit `perf_event_attr.type_` and `config`.
+    pub fn open_raw_configured(
+        pid: libc::pid_t,
+        type_: u32,
+        config: u64,
+        trigger: SampleTrigger,
+        pages_log2: u32,
+        callgraph: CallgraphConfig,
+    ) -> io::Result<Self> {
+        // SAFETY: sysconf has no preconditions.
+        let page = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as usize;
+        let data_size = page << pages_log2;
+
+        let mut sample_type = SAMPLE_TYPE;
         let mut attr = perf_event_attr {
             type_,
             size: std::mem::size_of::<perf_event_attr>() as u32,
             config,
-            sample_type: SAMPLE_TYPE,
+            sample_type,
             clockid: libc::CLOCK_MONOTONIC_RAW,
             ..Default::default()
         };
 
-        attr.__bindgen_anon_1.sample_freq = freq_hz;
-        attr.set_freq(1);
+        if let CallgraphConfig::Dwarf { stack_bytes } = callgraph {
+            sample_type |= SAMPLE_REGS_USER | SAMPLE_STACK_USER;
+            attr.sample_type = sample_type;
+            attr.sample_regs_user = default_user_regs_mask();
+            // Kernel requires 8-byte alignment and <= 65528 bytes.
+            attr.sample_stack_user = (stack_bytes & !7).min(65_528);
+        }
+
+        match trigger {
+            SampleTrigger::Freq(hz) => {
+                attr.__bindgen_anon_1.sample_freq = hz.max(1);
+                attr.set_freq(1);
+            }
+            SampleTrigger::Period(period) => {
+                attr.__bindgen_anon_1.sample_period = period.max(1);
+                attr.set_freq(0);
+            }
+        }
+
         attr.set_disabled(1);
         attr.set_enable_on_exec(1);
         attr.set_inherit(1);
@@ -168,22 +250,22 @@ impl Sampler {
         attr.set_watermark(1);
         attr.__bindgen_anon_2.wakeup_watermark = (data_size / 2) as u32;
 
-        // SAFETY: attr fully initialised; kernel copies it.
+        // SAFETY: attr is fully initialized; the kernel copies it on syscall entry.
         let raw =
             unsafe { sys::perf_event_open(&mut attr, pid, -1, -1, PERF_FLAG_FD_CLOEXEC as u64) };
         if raw < 0 {
             return Err(io::Error::last_os_error());
         }
-        // SAFETY: raw is a fresh valid fd.
+        // SAFETY: raw >= 0 is a fresh, owned file descriptor from perf_event_open.
         let fd = unsafe { OwnedFd::from_raw_fd(raw) };
 
         let map_len = page + data_size;
-        // SAFETY: mapping a perf fd; checked against MAP_FAILED below.
+        // SAFETY: mapping a live perf fd; MAP_FAILED is checked immediately below.
         let base = unsafe {
             libc::mmap(
                 ptr::null_mut(),
                 map_len,
-                libc::PROT_READ | libc::PROT_WRITE, // write needed for data_tail
+                libc::PROT_READ | libc::PROT_WRITE,
                 libc::MAP_SHARED,
                 fd.as_raw_fd(),
                 0,
@@ -192,7 +274,7 @@ impl Sampler {
         if base == libc::MAP_FAILED {
             return Err(io::Error::last_os_error());
         }
-        // SAFETY: fresh mmap of page + data_size bytes (power-of-two data).
+        // SAFETY: base points to a valid perf mmap of page + power-of-two data_size bytes.
         let ring = unsafe { Ring::from_raw_parts(base.cast(), page, data_size, true) };
         Ok(Sampler { fd, ring })
     }
@@ -200,6 +282,11 @@ impl Sampler {
     /// For the epoll loop (spec §9.2 B-O1).
     pub fn raw_fd(&self) -> RawFd {
         self.fd.as_raw_fd()
+    }
+
+    /// Drain raw unparsed records directly from the perf ring buffer.
+    pub fn drain_raw(&mut self, f: impl FnMut(&[u8])) -> Result<usize, RingError> {
+        self.ring.drain(f)
     }
 
     /// Decode and deliver every pending event. Decode failures are counted,

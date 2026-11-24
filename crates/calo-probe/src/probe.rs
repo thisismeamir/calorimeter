@@ -14,7 +14,9 @@ use std::{
 };
 
 use calo_schema::{
-    common::{CpuTier, Mode, RegionStorageMode, Status, TiersActive, Warning, WarningCode},
+    common::{
+        CpuTier, Mode, MpiTier, RegionStorageMode, Status, TiersActive, Warning, WarningCode,
+    },
     discovery::ObservedHardware,
     record::{
         Counter as SchemaCounter, EnergyJoules, ExitInfo, PhaseSpan, Record, RecordEnvironment,
@@ -31,6 +33,7 @@ use crate::{
     clock::{now_ns, realtime_rfc3339},
     counters::{check_mux_warning, CounterAlias, CounterScope, CounterSet},
     observe::run_observe_loop,
+    profile::{ProfileCollector, ProfileConfig},
     scalars::{merge_peak_rss, CgroupSnapshot},
     series::HostSampler,
     spawn::{spawn_gated, ChildSetup, ExecError, ExitStatus, NumaPolicy, Redirect, Rusage},
@@ -56,6 +59,7 @@ pub struct ProbeOptions {
     pub counters_override: BTreeMap<String, String>,
     pub counters_scope: CounterScope,
     pub max_sample_hz: Option<u32>,
+    pub rank_aware: bool,
 }
 
 /// Outcome returned by [`Probe::run`] for all workload completions (ok, failed, timeout, invalid).
@@ -82,19 +86,28 @@ impl Probe {
             .map_err(|e| ProbeError::InvalidRunSpec(e.to_string()))?;
         let out_dir = PathBuf::from(&spec.outputs.dir);
         fs::create_dir_all(&out_dir)?;
-
+        let rank_ctx = resolve_rank_context(spec, opts);
+        let multi_rank = rank_ctx.ranks > 1 || rank_ctx.rank > 0;
+        let fifo_name = if multi_rank {
+            format!("channel.rank{}.fifo", rank_ctx.rank)
+        } else {
+            "channel.fifo".to_string()
+        };
+        let series_rel = if multi_rank {
+            format!("series.host.rank{}.calotbl", rank_ctx.rank)
+        } else {
+            "series.host.calotbl".to_string()
+        };
         // 2. Signals: block SIGTERM/SIGINT/SIGHUP before spawning any threads (including
         // the writer thread) or forking, so process-directed signals go only to signalfd.
         let sig_guard = SignalGuard::block_termination_signals()?;
 
-        let mut channel = ChannelFifo::create(&out_dir)?;
-        let series_rel = "series.host.calotbl";
-        let series_path = out_dir.join(series_rel);
+        let mut channel = ChannelFifo::create_named(&out_dir, &fifo_name)?;
+        let series_path = out_dir.join(&series_rel);
         let writer = WriterHandle::spawn(
-            TableWriter::create_host_series(&series_path, series_rel)?,
+            TableWriter::create_host_series(&series_path, &series_rel)?,
             4096,
         );
-
         let region_mode = match spec.regions {
             Some(RegionStorageMode::Aggregate) => RegionMode::Aggregate,
             _ => RegionMode::Events,
@@ -116,7 +129,27 @@ impl Probe {
             opts.counters_scope,
         );
         let mut sampler = HostSampler::new(child.pid());
-
+        let mut profile_collector = if spec.mode == Mode::Profile {
+            let mut cfg = ProfileConfig::default();
+            if let Some(ref p) = spec.profile {
+                if let Some(hz) = p.freq_hz {
+                    cfg.freq_hz = hz;
+                }
+                if let Some(cg) = p.callgraph {
+                    cfg.callgraph = cg;
+                }
+                if let Some(sb) = p.stack_bytes {
+                    cfg.stack_bytes = sb;
+                }
+                cfg.attribute = p.attribute.clone();
+                if let Some(ml) = p.max_loss {
+                    cfg.max_loss = ml;
+                }
+            }
+            Some(ProfileCollector::open(child.pid(), cfg, &out_dir)?)
+        } else {
+            None
+        };
         let raw_hz = spec.sample_hz.unwrap_or(10).max(1);
         let sample_hz = opts
             .max_sample_hz
@@ -176,6 +209,7 @@ impl Probe {
                     &sig_guard,
                     sample_hz,
                     opts.timeout_s,
+                    profile_collector.as_mut(),
                 )?;
 
                 // 7. Reap: final sample while zombie is still in /proc, then wait4.
@@ -233,8 +267,39 @@ impl Probe {
                 (None, true)
             }
         };
+        let (profile_obs, profile_callgraph, profile_sample_loss, profile_invalid) =
+            if let Some(mut prof) = profile_collector {
+                let exe_path = Path::new(&spec.command[0]);
+                let has_symbols = if exe_path.is_file() {
+                    prof.check_main_executable_symbols(exe_path)
+                } else {
+                    true
+                };
+                match prof.finish(has_symbols) {
+                    Ok(summary) => {
+                        warnings.extend(summary.warnings);
+                        errors.extend(summary.errors);
+                        let cg = Some(summary.record_profile.method);
+                        (
+                            Some(summary.record_profile),
+                            cg,
+                            summary.sample_loss,
+                            summary.invalid,
+                        )
+                    }
+                    Err(e) => {
+                        errors.push(Warning {
+                            code: WarningCode::TraceOverflow,
+                            message: format!("profile sidecar finalization failed: {e}"),
+                        });
+                        (None, None, None, true)
+                    }
+                }
+            } else {
+                (None, None, None, false)
+            };
 
-        let final_status = if writer_dead {
+        let final_status = if writer_dead || profile_invalid {
             Status::Invalid
         } else {
             status_val
@@ -399,10 +464,9 @@ impl Probe {
         // so `Record::tier_authoritative_check` succeeds (see Ambiguities).
         let tiers_active = TiersActive {
             cpu: Some(CpuTier::T2),
-            mpi: None,
+            mpi: rank_ctx.rank_aware.then_some(MpiTier::M0),
             gpu: None,
         };
-
         let record = Record {
             schema: Record::SCHEMA.to_string(),
             identity: RecordIdentity {
@@ -418,10 +482,10 @@ impl Probe {
                 params: BTreeMap::new(),
                 repeat: None,
                 warmup: None,
-                rank: Some(0),
-                ranks: Some(1),
+                rank: Some(rank_ctx.rank),
+                ranks: Some(rank_ctx.ranks),
                 node: read_hostname(),
-                local_rank: Some(0),
+                local_rank: Some(rank_ctx.local_rank),
                 suite_hash: None,
                 linked_runs: Vec::new(),
                 status: final_status,
@@ -449,7 +513,7 @@ impl Probe {
                 reported,
                 tags: Some(tags),
                 series,
-                profile: None,
+                profile: profile_obs,
                 mpi: None,
                 gpu: None,
             },
@@ -461,12 +525,12 @@ impl Probe {
                     .map(|a| a.as_str().to_string())
                     .collect(),
                 clock: Some("CLOCK_MONOTONIC_RAW".to_string()),
-                callgraph: None,
+                callgraph: profile_callgraph,
                 start: start_rfc3339,
                 end: end_rfc3339,
                 start_ns: Some(go_ns),
                 exit: exit_info,
-                sample_loss: None,
+                sample_loss: profile_sample_loss,
                 trace_overflow,
                 tiers_active,
                 warnings,
@@ -480,8 +544,7 @@ impl Probe {
             .check()
             .map_err(|e| ProbeError::RecordValidation(e.to_string()))?;
 
-        let record_path = out_dir.join("rank0.yaml");
-        let yaml = serde_yaml_ng::to_string(&record)
+        let record_path = out_dir.join(format!("rank{}.yaml", rank_ctx.rank));        let yaml = serde_yaml_ng::to_string(&record)
             .map_err(|e| ProbeError::RecordValidation(e.to_string()))?;
         write_atomic(&record_path, yaml.as_bytes())?;
 
@@ -490,6 +553,16 @@ impl Probe {
             record,
             exit_code: process_exit_code,
         })
+    }
+
+    /// Passive hardware discovery without running a workload (Spec §6.3, §9.0).
+    pub fn discover(
+        opts: &crate::discover::DiscoverOpts,
+    ) -> Result<calo_schema::discovery::Discovery, ProbeError> {
+        let disc = crate::discover::discover_local(opts);
+        disc.check()
+            .map_err(|e| ProbeError::RecordValidation(e.to_string()))?;
+        Ok(disc)
     }
 }
 
@@ -687,10 +760,12 @@ fn read_hostname() -> Option<String> {
 }
 
 fn read_cheap_observed_hardware() -> ObservedHardware {
-    let mut obs = ObservedHardware::default();
-    obs.kernel = fs::read_to_string("/proc/sys/kernel/osrelease")
-        .ok()
-        .map(|s| s.trim().to_string());
+    let mut obs = ObservedHardware {
+        kernel: fs::read_to_string("/proc/sys/kernel/osrelease")
+            .ok()
+            .map(|s| s.trim().to_string()),
+        ..Default::default()
+    };
     if let Some(paranoid) = fs::read_to_string("/proc/sys/kernel/perf_event_paranoid")
         .ok()
         .and_then(|s| s.trim().parse::<i32>().ok())
@@ -756,4 +831,62 @@ fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy)]
+struct RankContext {
+    rank: u32,
+    ranks: u32,
+    local_rank: u32,
+    rank_aware: bool,
+}
+
+fn read_env_u32(names: &[&str]) -> Option<u32> {
+    for &key in names {
+        if let Ok(val) = std::env::var(key) {
+            if let Ok(n) = val.trim().parse::<u32>() {
+                return Some(n);
+            }
+        }
+    }
+    None
+}
+
+fn resolve_rank_context(spec: &RunSpec, opts: &ProbeOptions) -> RankContext {
+    let rank_aware = opts.rank_aware || spec.rank.as_ref().is_some_and(|r| r.from_env);
+    if !rank_aware {
+        return RankContext {
+            rank: 0,
+            ranks: 1,
+            local_rank: 0,
+            rank_aware: false,
+        };
+    }
+    let rank = read_env_u32(&[
+        "OMPI_COMM_WORLD_RANK",
+        "PMI_RANK",
+        "SLURM_PROCID",
+        "PMIX_RANK",
+    ])
+    .unwrap_or(0);
+    let ranks = read_env_u32(&[
+        "OMPI_COMM_WORLD_SIZE",
+        "PMI_SIZE",
+        "SLURM_NTASKS",
+        "PMIX_SIZE",
+    ])
+    .unwrap_or(1)
+    .max(1);
+    let local_rank = read_env_u32(&[
+        "OMPI_COMM_WORLD_LOCAL_RANK",
+        "PMI_LOCAL_RANK",
+        "SLURM_LOCALID",
+    ])
+    .unwrap_or(rank);
+    RankContext {
+        rank,
+        ranks,
+        local_rank,
+        rank_aware: true,
+    }
 }

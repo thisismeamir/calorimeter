@@ -14,3 +14,4 @@ pub mod series;
 pub mod spawn;
 pub mod sys;
 pub mod table_writer;
+pub mod discover;
