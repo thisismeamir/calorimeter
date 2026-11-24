@@ -447,21 +447,21 @@ pub fn build_launcher_argv(
 pub fn resolve_probe_binary(explicit: Option<&Path>) -> Result<PathBuf, ExecError> {
     if let Some(p) = explicit {
         if p.exists() {
-            return Ok(p.to_path_buf());
+            return Ok(p.canonicalize().unwrap_or_else(|_| p.to_path_buf()));
         }
         return Err(ExecError::ProbeNotFound);
     }
     if let Ok(env_p) = std::env::var("CALO_PROBE") {
         let p = PathBuf::from(env_p);
         if p.exists() {
-            return Ok(p);
+            return Ok(p.canonicalize().unwrap_or(p));
         }
     }
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
             let sibling = dir.join("probe");
             if sibling.exists() {
-                return Ok(sibling);
+                return Ok(sibling.canonicalize().unwrap_or(sibling));
             }
         }
     }

@@ -1,20 +1,20 @@
 //! Run ordering (`interleaved`, `random`, `sequential`), execution loop, and dry-run planning (spec §15).
 
+use crate::aggregate::aggregate_run;
 use crate::exec::adapter::{Adapter, JobState, StagedRun};
 use crate::exec::error::ExecError;
 use crate::exec::runspec::{build_launcher_argv, build_runspec, render_step_files};
 use crate::plan::{parse_timeout_hours, PinnedRun};
+use crate::results::{plan_resume, update_manifest_run, write_atomic_bytes, ResultsDir};
 use calo_schema::common::Status;
 use calo_schema::inventory::Inventory;
+use calo_schema::record::{Record, RenderedFile};
 use calo_schema::suite::{OnFailurePolicy, RunOrder, Suite};
+use calo_schema::{from_yaml_str, to_yaml_string};
 use std::collections::BTreeMap;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use crate::aggregate::aggregate_run;
-use crate::results::{plan_resume, update_manifest_run, write_atomic_bytes, ResultsDir};
-use calo_schema::record::Record;
-use calo_schema::{from_yaml_str, to_yaml_string};
-use std::fs;
 
 /// Dry-run preview entry for `calo run --dry-run`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -162,11 +162,22 @@ pub fn execute_suite_runs(
         let inputs_dir = run_dir.join("inputs");
 
         let rendered_files = if dry_run {
-            BTreeMap::new()
+            step.files
+                .keys()
+                .map(|name| {
+                    let out_file = inputs_dir.join(format!("{name}.in"));
+                    (
+                        name.clone(),
+                        RenderedFile {
+                            path: out_file.display().to_string(),
+                            sha256: String::new(),
+                        },
+                    )
+                })
+                .collect()
         } else {
             render_step_files(step, &run.params, suite_root, &inputs_dir)?
         };
-
         let runspec = build_runspec(
             &run,
             suite,
@@ -224,7 +235,10 @@ pub fn execute_suite_runs(
                 summary.failed += 1;
                 Status::Timeout
             }
-            JobState::Failed { .. } | JobState::Cancelled | JobState::Pending | JobState::Running => {
+            JobState::Failed { .. }
+            | JobState::Cancelled
+            | JobState::Pending
+            | JobState::Running => {
                 summary.failed += 1;
                 Status::Failed
             }
@@ -244,11 +258,7 @@ pub fn execute_suite_runs(
 /// Aggregates fetched `rank*.yaml` records into `run.yaml` and stamps control-plane
 /// identity/environment fields (`suite_hash`, `params`, `benchmark`, `machine`) while
 /// leaving raw rank records immutable (spec §10 R-REC-4, R-REC-7).
-fn finalize_run_record(
-    run_dir: &Path,
-    run: &PinnedRun,
-    suite_hash: &str,
-) -> Result<(), ExecError> {
+fn finalize_run_record(run_dir: &Path, run: &PinnedRun, suite_hash: &str) -> Result<(), ExecError> {
     let run_yaml_path = run_dir.join("run.yaml");
     if run_yaml_path.exists() || !run_dir.is_dir() {
         return Ok(());
