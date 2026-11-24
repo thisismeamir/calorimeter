@@ -4,13 +4,17 @@ use crate::exec::adapter::{Adapter, JobState, StagedRun};
 use crate::exec::error::ExecError;
 use crate::exec::runspec::{build_launcher_argv, build_runspec, render_step_files};
 use crate::plan::{parse_timeout_hours, PinnedRun};
-use crate::results::{plan_resume, update_manifest_run, ResultsDir};
 use calo_schema::common::Status;
 use calo_schema::inventory::Inventory;
 use calo_schema::suite::{OnFailurePolicy, RunOrder, Suite};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use crate::aggregate::aggregate_run;
+use crate::results::{plan_resume, update_manifest_run, write_atomic_bytes, ResultsDir};
+use calo_schema::record::Record;
+use calo_schema::{from_yaml_str, to_yaml_string};
+use std::fs;
 
 /// Dry-run preview entry for `calo run --dry-run`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -210,7 +214,7 @@ pub fn execute_suite_runs(
         let handle = adapter.submit(&staged)?;
         let state = adapter.poll(&handle)?;
         adapter.fetch(&handle, &run_dir)?;
-
+        finalize_run_record(&run_dir, &run, &results.suite_hash)?;
         let status = match state {
             JobState::Completed => {
                 summary.succeeded += 1;
@@ -235,4 +239,73 @@ pub fn execute_suite_runs(
     }
 
     Ok(summary)
+}
+
+/// Aggregates fetched `rank*.yaml` records into `run.yaml` and stamps control-plane
+/// identity/environment fields (`suite_hash`, `params`, `benchmark`, `machine`) while
+/// leaving raw rank records immutable (spec §10 R-REC-4, R-REC-7).
+fn finalize_run_record(
+    run_dir: &Path,
+    run: &PinnedRun,
+    suite_hash: &str,
+) -> Result<(), ExecError> {
+    let run_yaml_path = run_dir.join("run.yaml");
+    if run_yaml_path.exists() || !run_dir.is_dir() {
+        return Ok(());
+    }
+
+    let mut rank_files = Vec::new();
+    for entry in fs::read_dir(run_dir).map_err(|source| ExecError::Io {
+        path: run_dir.to_path_buf(),
+        source,
+    })? {
+        let entry = entry.map_err(|source| ExecError::Io {
+            path: run_dir.to_path_buf(),
+            source,
+        })?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name.starts_with("rank") && name.ends_with(".yaml") {
+            rank_files.push(entry.path());
+        }
+    }
+    if rank_files.is_empty() {
+        return Ok(());
+    }
+    rank_files.sort();
+
+    let mut rank_records = Vec::with_capacity(rank_files.len());
+    for rf in &rank_files {
+        let raw = fs::read_to_string(rf).map_err(|source| ExecError::Io {
+            path: rf.clone(),
+            source,
+        })?;
+        rank_records.push(from_yaml_str::<Record>(&raw)?);
+    }
+
+    let Ok(mut agg) = aggregate_run(&rank_records) else {
+        return Ok(());
+    };
+
+    agg.identity.benchmark = run.benchmark.clone();
+    agg.identity.group = run.group.clone();
+    agg.identity.params = run.params.clone();
+    agg.identity.repeat = Some(run.repeat);
+    agg.identity.warmup = Some(run.warmup);
+    agg.identity.suite_hash = Some(suite_hash.to_string());
+    if let Some(ref linked) = run.linked_from {
+        if !agg.identity.linked_runs.contains(linked) {
+            agg.identity.linked_runs.push(linked.clone());
+        }
+    }
+
+    let (machine, node_class) = match run.machine.split_once('/') {
+        Some((m, c)) => (m.to_string(), Some(c.to_string())),
+        None => (run.machine.clone(), None),
+    };
+    agg.environment.machine = machine;
+    agg.environment.node_class = node_class;
+
+    let yaml = to_yaml_string(&agg)?;
+    write_atomic_bytes(&run_yaml_path, yaml.as_bytes())?;
+    Ok(())
 }

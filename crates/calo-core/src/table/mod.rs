@@ -25,8 +25,6 @@ pub(crate) mod test_writer {
     use super::{crc32_ieee, Block, ColumnData, TABLE_MAGIC};
     use calo_schema::table::TableHeader;
     use calo_schema::to_yaml_string;
-    use calo_schema::WarningCode::ClockUnsynced;
-
     /// Test-only helper to serialize a `TableHeader` and a slice of `Block`s into `calo.table/1` bytes.
     #[allow(dead_code)]
     pub(crate) fn write_table_bytes(header: &TableHeader, blocks: &[Block]) -> Vec<u8> {
