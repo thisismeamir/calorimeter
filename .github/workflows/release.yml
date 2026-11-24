@@ -1,0 +1,136 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+            linux_full: true
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04
+            linux_full: true
+            cross_arm64: true
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-14
+            linux_full: false
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-14
+            linux_full: false
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            linux_full: false
+            archive: zip
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            linux_full: false
+            archive: zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install ARM64 cross-linker (Linux)
+        if: matrix.cross_arm64
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build release binaries (Linux full bundle)
+        if: matrix.linux_full
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: |
+          cargo build --release --target ${{ matrix.target }} \
+            -p calo-cli -p calo-probe -p calo-shim-mpi
+
+      - name: Build release binary (macOS/Windows control plane)
+        if: ${{ !matrix.linux_full }}
+        run: |
+          cargo build --release --target ${{ matrix.target }} -p calo-cli
+
+      - name: Package archive (Unix)
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          PKG="calorimeter-${TAG}-${{ matrix.target }}"
+          STAGE="dist/${PKG}"
+          mkdir -p "${STAGE}/bin" "${STAGE}/include"
+
+          cp "target/${{ matrix.target }}/release/calo" "${STAGE}/bin/"
+          cp "crates/calo-channel/include/calo_channel.h" "${STAGE}/include/"
+          cp README.md LICENSE "${STAGE}/"
+
+          if [[ "${{ matrix.linux_full }}" == "true" ]]; then
+            mkdir -p "${STAGE}/lib" "${STAGE}/share/calo-shim-mpi"
+            cp "target/${{ matrix.target }}/release/probe" "${STAGE}/bin/"
+            cp "target/${{ matrix.target }}/release/libcalo_shim_mpi.so" "${STAGE}/lib/"
+            cp "crates/calo-shim-mpi/c/pmpi_wrap.c" "${STAGE}/share/calo-shim-mpi/"
+            cp "crates/calo-shim-mpi/build_shim.sh" "${STAGE}/share/calo-shim-mpi/"
+          fi
+
+          tar -C dist -czf "dist/${PKG}.tar.gz" "${PKG}"
+
+      - name: Package archive (Windows)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $pkg = "calorimeter-$tag-${{ matrix.target }}"
+          $stage = "dist/$pkg"
+          New-Item -ItemType Directory -Force -Path "$stage/bin", "$stage/include" | Out-Null
+
+          Copy-Item "target/${{ matrix.target }}/release/calo.exe" "$stage/bin/"
+          Copy-Item "crates/calo-channel/include/calo_channel.h" "$stage/include/"
+          Copy-Item "README.md", "LICENSE" "$stage/"
+
+          Compress-Archive -Path $stage -DestinationPath "dist/$pkg.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate SHA256SUMS.txt
+        working-directory: artifacts
+        run: sha256sum calorimeter-* > SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/calorimeter-*
+            artifacts/SHA256SUMS.txt
