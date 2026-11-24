@@ -7,7 +7,7 @@ use crate::exec::runspec::{build_launcher_argv, build_runspec, render_step_files
 use crate::plan::{parse_timeout_hours, PinnedRun};
 use crate::results::{plan_resume, update_manifest_run, write_atomic_bytes, ResultsDir};
 use calo_schema::common::Status;
-use calo_schema::inventory::Inventory;
+use calo_schema::inventory::{Inventory};
 use calo_schema::record::{Record, RenderedFile};
 use calo_schema::suite::{OnFailurePolicy, RunOrder, Suite};
 use calo_schema::{from_yaml_str, to_yaml_string};
@@ -103,6 +103,36 @@ pub fn execute_suite_runs(
     dry_run: bool,
     seed: u64,
 ) -> Result<RunExecutionSummary, ExecError> {
+    execute_suite_runs_with_cwds(
+        expanded,
+        suite,
+        inventory,
+        results,
+        suite_root,
+        &BTreeMap::new(),
+        probe_bin,
+        adapter,
+        force,
+        dry_run,
+        seed,
+    )
+}
+
+/// Same as [`execute_suite_runs`], using `run_cwds[run_id]` when a run has a prepared worktree.
+#[allow(clippy::too_many_arguments)]
+pub fn execute_suite_runs_with_cwds(
+    expanded: &[PinnedRun],
+    suite: &Suite,
+    inventory: &Inventory,
+    results: &ResultsDir,
+    suite_root: &Path,
+    run_cwds: &BTreeMap<String, PathBuf>,
+    probe_bin: &Path,
+    adapter: &dyn Adapter,
+    force: bool,
+    dry_run: bool,
+    seed: u64,
+) -> Result<RunExecutionSummary, ExecError> {
     let to_run = plan_resume(expanded, results, force);
     let order = suite
         .options
@@ -178,13 +208,18 @@ pub fn execute_suite_runs(
         } else {
             render_step_files(step, &run.params, suite_root, &inputs_dir)?
         };
+
+        let run_cwd = run_cwds
+            .get(&run.run_id)
+            .map_or(suite_root, PathBuf::as_path);
+
         let runspec = build_runspec(
             &run,
             suite,
             inventory,
             &rendered_files,
             &run_dir,
-            suite_root,
+            run_cwd,
             None,
         )?;
         let argv = build_launcher_argv(
@@ -217,7 +252,7 @@ pub fn execute_suite_runs(
             runspec: runspec.clone(),
             runspec_path: runspec_path.clone(),
             argv,
-            cwd: suite_root.to_path_buf(),
+            cwd: run_cwd.to_path_buf(),
             env: runspec.env.clone(),
             timeout,
         })?;
@@ -226,6 +261,7 @@ pub fn execute_suite_runs(
         let state = adapter.poll(&handle)?;
         adapter.fetch(&handle, &run_dir)?;
         finalize_run_record(&run_dir, &run, &results.suite_hash)?;
+
         let status = match state {
             JobState::Completed => {
                 summary.succeeded += 1;
