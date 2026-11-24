@@ -1,14 +1,14 @@
 #![forbid(unsafe_code)]
 //! Command-line interface for Calorimeter (`calo`), implementing spec §14 and §17.
 
+pub mod analyze_cmd;
 pub mod cli;
 pub mod lint;
 pub mod plan_cmd;
+pub mod report_cmd;
 pub mod run_cmd;
 pub mod spec_cmd;
-// Analyze CMD implementation is hanging...
-pub mod analyze_cmd;
-
+pub mod status_cmd;
 use clap::Parser;
 use cli::{Cli, Command};
 use std::process::ExitCode;
@@ -123,6 +123,26 @@ fn run_command(args: &Cli) -> anyhow::Result<u8> {
         }
         Command::Verify { machine, probe } => {
             spec_cmd::execute_verify(&args.inventory, machine, probe.as_deref(), args.quiet)
+        }
+
+        Command::Analyze => analyze_cmd::execute_analyze(&args.results, args.quiet),
+        Command::Report { baseline } => report_cmd::execute_report(
+            &args.suite,
+            &args.results,
+            baseline.as_deref(),
+            &args.set,
+            args.quiet,
+        ),
+        Command::Diff {
+            dir_a,
+            dir_b,
+            allow_mixed,
+        } => report_cmd::execute_diff(dir_a, dir_b, *allow_mixed, args.quiet),
+        Command::Status { format } => {
+            status_cmd::execute_status(&args.results, *format, args.quiet)
+        }
+        Command::Cancel { select } => {
+            status_cmd::execute_cancel(&args.results, select.as_deref(), args.quiet)
         }
     }
 }

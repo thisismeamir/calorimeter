@@ -5,7 +5,11 @@ use std::path::PathBuf;
 
 /// Calorimeter (`calo`) benchmarking and profiling CLI (spec §14).
 #[derive(Debug, Parser)]
-#[command(name = "calo", version, about = "Calorimeter benchmarking and profiling system")]
+#[command(
+    name = "calo",
+    version,
+    about = "Calorimeter benchmarking and profiling system"
+)]
 pub struct Cli {
     /// Path to `suite.yaml` (spec §14).
     #[arg(long, global = true, default_value = "suite.yaml")]
@@ -97,6 +101,36 @@ pub enum Command {
         /// Explicit path to the `probe` binary.
         #[arg(long)]
         probe: Option<PathBuf>,
+    },
+    /// Aggregate per-rank records into `run.yaml` and run analysis (spec §12.1, §14).
+    Analyze,
+    /// Generate reports and evaluate regression gates (spec §13, §14).
+    Report {
+        /// Optional baseline results directory for gate comparisons (spec §13 R-REP-4).
+        #[arg(long)]
+        baseline: Option<PathBuf>,
+    },
+    /// Compare two result directories (spec §14, §18).
+    Diff {
+        /// First results directory.
+        dir_a: PathBuf,
+        /// Second results directory.
+        dir_b: PathBuf,
+        /// Allow comparing records produced by incompatible probe major versions (spec §18).
+        #[arg(long)]
+        allow_mixed: bool,
+    },
+    /// Show status of runs in a results directory (spec §14).
+    Status {
+        /// Output format (`table` or `yaml`).
+        #[arg(long, default_value = "table")]
+        format: PlanFormat,
+    },
+    /// Cancel matching runs in a results directory (spec §14).
+    Cancel {
+        /// Filter runs by benchmark name or glob selector.
+        #[arg(long)]
+        select: Option<String>,
     },
 }
 
